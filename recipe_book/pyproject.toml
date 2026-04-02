@@ -8,3 +8,6 @@ dependencies = [
     "pyyaml>=6.0",
     "rich>=13.0",
 ]
+
+[tool.uv.sources]
+chef-pantry = { workspace = true }

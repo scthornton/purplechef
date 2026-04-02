@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -11,7 +11,7 @@ EmulationMethod = Literal["caldera", "atomic", "manual"]
 class CalderaAbilitySpec(BaseModel):
     technique_id: str
     ability_id: str = "auto"
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class CalderaAttackSpec(BaseModel):
@@ -28,9 +28,9 @@ class AtomicAttackSpec(BaseModel):
 
 class EmulationRecord(BaseModel):
     method: EmulationMethod
-    operation_id: Optional[str] = None
+    operation_id: str | None = None
     techniques_attempted: list[str] = []
     techniques_succeeded: list[str] = []
     start_time: datetime
-    end_time: Optional[datetime] = None
+    end_time: datetime | None = None
     status: Literal["pending", "running", "completed", "failed", "dry_run"]

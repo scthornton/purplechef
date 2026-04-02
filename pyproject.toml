@@ -17,8 +17,15 @@ classifiers = [
 [tool.uv.workspace]
 members = ["pantry", "recipe_book", "detection_kitchen", "hardening_kitchen", "cli"]
 
-[tool.uv]
-dev-dependencies = [
+[tool.uv.sources]
+chef-pantry = { workspace = true }
+chef-recipe-book = { workspace = true }
+chef-detection-kitchen = { workspace = true }
+chef-hardening-kitchen = { workspace = true }
+chef-cli = { workspace = true }
+
+[dependency-groups]
+dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "respx>=0.22",

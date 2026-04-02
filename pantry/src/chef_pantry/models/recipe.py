@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .emulation import AtomicAttackSpec, CalderaAttackSpec, EmulationMethod
 
@@ -17,15 +17,15 @@ class RecipeMetadata(BaseModel):
 
 
 class MiseEnPlace(BaseModel):
-    terraform_module: Optional[str] = None
+    terraform_module: str | None = None
     ansible_roles: list[str] = []
     prerequisites: dict[str, Any] = {}
 
 
 class AttackSpec(BaseModel):
     method: EmulationMethod
-    caldera: Optional[CalderaAttackSpec] = None
-    atomic: Optional[AtomicAttackSpec] = None
+    caldera: CalderaAttackSpec | None = None
+    atomic: AtomicAttackSpec | None = None
 
     @model_validator(mode="after")
     def validate_spec_matches_method(self) -> AttackSpec:
@@ -54,12 +54,14 @@ class AdviseSpec(BaseModel):
 
 
 class Recipe(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str
     version: str = "1.0"
     description: str
     metadata: RecipeMetadata
     mise_en_place: MiseEnPlace
     attack: AttackSpec
-    validate: ValidateSpec
+    validate_spec: ValidateSpec = Field(alias="validate")
     report: ReportSpec = ReportSpec()
     advise: AdviseSpec = AdviseSpec()

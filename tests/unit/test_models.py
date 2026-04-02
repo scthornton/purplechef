@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from pydantic import ValidationError as PydanticValidationError
-
 from chef_pantry.models.evidence import CoverageResult, DetectionMatch, EvidenceChain
 from chef_pantry.models.recipe import AttackSpec, Recipe
 from chef_pantry.models.technique import MitreTechnique, ResolvedTechnique
-
+from pydantic import ValidationError as PydanticValidationError
 
 # ---------------------------------------------------------------------------
 # MitreTechnique
@@ -89,7 +87,7 @@ def _make_evidence_chain(
     detections: list[DetectionMatch] | None = None,
     technique: MitreTechnique | None = None,
 ) -> EvidenceChain:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     tech = technique or MitreTechnique(
         id="T1018", name="Remote System Discovery", tactic="discovery"
     )
@@ -127,7 +125,7 @@ class TestEvidenceChain:
         assert chain.detection_count == 0
 
     def test_detection_count_with_detections(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         det = DetectionMatch(
             rule_name="lsass_access",
             source="limacharlie",
@@ -154,7 +152,7 @@ class TestCoverageResult:
         return CoverageResult(
             recipe_name="test-recipe",
             run_id="run-001",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             evidence_chains=chains,
         )
 

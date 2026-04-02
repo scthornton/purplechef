@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import pytest
 import respx
-from httpx import Response
-
 from chef_pantry.clients.caldera import CalderaClient
-from chef_pantry.errors import CalderaError, DryRunBlocked
+from chef_pantry.errors import CalderaError, DryRunBlockedError
+from httpx import Response
 
 BASE_URL = "http://caldera.local:8888"
 API_KEY = "test-api-key"
@@ -103,7 +102,7 @@ class TestFindAbilityByTechnique:
 
 class TestCreateAdversaryDryRun:
     async def test_dry_run_raises_dry_run_blocked(self, dry_client: CalderaClient) -> None:
-        with pytest.raises(DryRunBlocked):
+        with pytest.raises(DryRunBlockedError):
             await dry_client.create_adversary(
                 name="test-adversary",
                 description="test",
@@ -148,7 +147,7 @@ class TestCreateOperation:
     async def test_allowed_group_in_dry_run_raises_dry_run_blocked(
         self, dry_client: CalderaClient
     ) -> None:
-        with pytest.raises(DryRunBlocked):
+        with pytest.raises(DryRunBlockedError):
             await dry_client.create_operation(
                 name="op-1",
                 adversary_id="adv-1",
@@ -215,12 +214,12 @@ class TestErrorHandling:
         assert str(err) == "Caldera 403: Forbidden"
 
     def test_dry_run_blocked_str_with_action(self) -> None:
-        err = DryRunBlocked(action="create_adversary")
+        err = DryRunBlockedError(action="create_adversary")
         assert "DRY RUN" in str(err)
         assert "create_adversary" in str(err)
 
     def test_dry_run_blocked_str_without_action(self) -> None:
-        err = DryRunBlocked()
+        err = DryRunBlockedError()
         assert "DRY RUN" in str(err)
 
 

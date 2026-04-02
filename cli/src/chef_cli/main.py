@@ -10,13 +10,11 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 console = Console()
@@ -132,7 +130,7 @@ def recipe_list(directory: Path) -> None:
                 str(path.relative_to(directory)),
             )
         except Exception as exc:
-            table.add_row(f"[red]ERROR[/]", str(exc)[:50], "", "", str(path))
+            table.add_row("[red]ERROR[/]", str(exc)[:50], "", "", str(path))
 
     console.print(table)
 
@@ -176,7 +174,7 @@ def recipe_lint(path: Path) -> None:
         console.print("  [green]✓[/] Attack spec consistent with method")
 
     # Sigma rule files exist
-    for rule in r.validate.sigma_rules:
+    for rule in r.validate_spec.sigma_rules:
         rule_path = path.parent / rule.get("path", "")
         if rule_path.exists():
             console.print(f"  [green]✓[/] Sigma rule exists: {rule_path.name}")
@@ -188,7 +186,7 @@ def recipe_lint(path: Path) -> None:
         console.print(f"\n[red]✗ {len(issues)} issue(s) found[/]")
         sys.exit(1)
     else:
-        console.print(f"\n[green]✓ Recipe is valid[/]")
+        console.print("\n[green]✓ Recipe is valid[/]")
 
 
 @cli.group()

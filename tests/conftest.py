@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
 from chef_pantry.models.technique import MitreTechnique
 
 
@@ -33,7 +32,7 @@ def sample_technique_no_sub() -> MitreTechnique:
 
 @pytest.fixture()
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @pytest.fixture()

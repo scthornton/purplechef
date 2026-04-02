@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 
 from chef_pantry.errors import LimaCharlieError
-
 
 _TECHNIQUE_TAG_RE = re.compile(r"\bt\d{4}(?:\.\d{3})?\b", re.IGNORECASE)
 
@@ -120,8 +119,8 @@ class LimaCharlieClient:
         """Extract timestamp from a detection event."""
         ts = detection.get("detect", {}).get("routing", {}).get("event_time", 0)
         if isinstance(ts, (int, float)):
-            return datetime.fromtimestamp(ts / 1_000_000 if ts > 1e12 else ts, tz=timezone.utc)
-        return datetime.now(timezone.utc)
+            return datetime.fromtimestamp(ts / 1_000_000 if ts > 1e12 else ts, tz=UTC)
+        return datetime.now(UTC)
 
     async def close(self) -> None:
         await self._client.aclose()
