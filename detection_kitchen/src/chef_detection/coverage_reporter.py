@@ -6,12 +6,18 @@ with stakeholders or archiving alongside detection engineering artifacts.
 
 from __future__ import annotations
 
+import html
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from chef_pantry.models.evidence import CoverageResult, EvidenceChain
+
+
+def _esc(value: object) -> str:
+    """Escape a value for safe inclusion in HTML output."""
+    return html.escape(str(value))
 
 # ---------------------------------------------------------------------------
 # Colour constants
@@ -113,11 +119,11 @@ def generate_html_report(result: CoverageResult) -> str:
         border = _GREEN if detected else _RED
         icon = _status_icon(chain)
         icon_color = _GREEN if detected else _RED
-        alert_ids = ", ".join(d.alert_id for d in chain.detections) if chain.detections else "---"
+        alert_ids = ", ".join(_esc(d.alert_id) for d in chain.detections) if chain.detections else "---"
         cards.append(
             f'<div class="card" style="border-left:4px solid {border};">'
-            f'  <div class="card-id">{chain.technique.id}</div>'
-            f'  <div class="card-name">{chain.technique.name}</div>'
+            f'  <div class="card-id">{_esc(chain.technique.id)}</div>'
+            f'  <div class="card-name">{_esc(chain.technique.name)}</div>'
             f'  <div class="card-icon" style="color:{icon_color};">{icon}</div>'
             f'  <div class="card-detail">Detections: {chain.detection_count}</div>'
             f'  <div class="card-detail">Alerts: {alert_ids}</div>'
@@ -128,18 +134,18 @@ def generate_html_report(result: CoverageResult) -> str:
     rows: list[str] = []
     for chain in result.evidence_chains:
         matched_rules = (
-            ", ".join(d.rule_name for d in chain.detections) if chain.detections else "---"
+            ", ".join(_esc(d.rule_name) for d in chain.detections) if chain.detections else "---"
         )
-        alert_ids = ", ".join(d.alert_id for d in chain.detections) if chain.detections else "---"
+        alert_ids = ", ".join(_esc(d.alert_id) for d in chain.detections) if chain.detections else "---"
         status_color = _GREEN if chain.is_detected else _RED
         rows.append(
             f"<tr>"
-            f"  <td>{chain.technique.id}</td>"
-            f"  <td>{chain.technique.name}</td>"
-            f"  <td>{chain.emulation_id}</td>"
+            f"  <td>{_esc(chain.technique.id)}</td>"
+            f"  <td>{_esc(chain.technique.name)}</td>"
+            f"  <td>{_esc(chain.emulation_id)}</td>"
             f"  <td>{chain.execution_start.strftime('%H:%M:%S')} &mdash; "
             f"{chain.execution_end.strftime('%H:%M:%S')}</td>"
-            f'  <td style="color:{status_color};font-weight:700;">{chain.status.upper()}</td>'
+            f'  <td style="color:{status_color};font-weight:700;">{_esc(chain.status.upper())}</td>'
             f"  <td>{matched_rules}</td>"
             f"  <td>{alert_ids}</td>"
             f"</tr>"
@@ -153,7 +159,7 @@ def generate_html_report(result: CoverageResult) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PurpleChef Coverage Report — {result.recipe_name}</title>
+<title>PurpleChef Coverage Report — {_esc(result.recipe_name)}</title>
 <style>
   * {{ margin:0; padding:0; box-sizing:border-box; }}
   body {{ background:{_DARK_BG}; color:{_TEXT}; font-family:'Segoe UI',system-ui,sans-serif; padding:2rem; }}
@@ -183,7 +189,7 @@ def generate_html_report(result: CoverageResult) -> str:
 
 <div class="header">
   <h1>PurpleChef Coverage Report</h1>
-  <div class="sub">{result.recipe_name} &mdash; {now} &mdash; Run: {result.run_id}</div>
+  <div class="sub">{_esc(result.recipe_name)} &mdash; {now} &mdash; Run: {_esc(result.run_id)}</div>
 </div>
 
 <div class="summary">

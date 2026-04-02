@@ -212,6 +212,15 @@ class RecipeOrchestrator:
         self._phase = Phase.VALIDATE
         console.print("\n[bold]🔍 Validate[/] — checking for detections")
 
+        # Enforce detection_source contract
+        source = recipe.validate_spec.detection_source
+        if source != "limacharlie":
+            raise NotImplementedError(
+                f"Detection source '{source}' is not yet supported. "
+                f"Only 'limacharlie' is currently implemented. "
+                f"Set validate.detection_source to 'limacharlie' in your recipe."
+            )
+
         now = datetime.now(UTC)
         # Use execution start time if available, else look back from now
         exec_start_str = emulation.get("start_time")
@@ -221,10 +230,35 @@ class RecipeOrchestrator:
             lookback = recipe.validate_spec.wait_seconds + 600
             window_start = datetime.fromtimestamp(now.timestamp() - lookback, tz=UTC)
 
-        # Build expected rule name set for filtering
-        expected_rule_names = {
-            r["name"].lower() for r in recipe.validate_spec.expected_rules if "name" in r
-        }
+        # Build expected rule patterns for flexible matching.
+        # Supports exact names, regex patterns (prefix with "re:"), and
+        # Sigma-style title matching via substring containment.
+        expected_patterns: list[tuple[str, str]] = []  # (mode, value)
+        for r in recipe.validate_spec.expected_rules:
+            name = r.get("name", "")
+            if not name:
+                continue
+            if name.startswith("re:"):
+                expected_patterns.append(("regex", name[3:]))
+            else:
+                # Use substring match (case-insensitive) rather than exact match
+                # to tolerate drift between recipe names and Sigma titles.
+                expected_patterns.append(("substring", name.lower()))
+
+        def _rule_matches(rule_name: str) -> bool:
+            """Check if a detection rule name matches any expected pattern."""
+            if not expected_patterns:
+                return True  # No filter — accept all detections
+            name_lower = rule_name.lower()
+            for mode, value in expected_patterns:
+                if mode == "regex":
+                    import re
+                    if re.search(value, rule_name, re.IGNORECASE):
+                        return True
+                elif mode == "substring":
+                    if value in name_lower:
+                        return True
+            return False
 
         chains: list[EvidenceChain] = []
         for tid in recipe.metadata.mitre_techniques:
@@ -233,12 +267,12 @@ class RecipeOrchestrator:
                 tid, start=window_start, end=now
             )
 
-            # Filter by expected_rules if specified
+            # Filter by expected_rules using flexible matching
             matches = []
             for d in detections:
                 rule_name = d.get("detect", {}).get("detect_mtd", {}).get("name", "unknown")
-                if expected_rule_names and rule_name.lower() not in expected_rule_names:
-                    continue  # Skip detections from unexpected rules
+                if not _rule_matches(rule_name):
+                    continue  # Skip detections that don't match any expected pattern
                 matches.append(
                     DetectionMatch(
                         rule_name=rule_name,

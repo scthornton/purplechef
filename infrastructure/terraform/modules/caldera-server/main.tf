@@ -111,11 +111,13 @@ resource "aws_instance" "caldera" {
     port: 8888
     host: 0.0.0.0
     users:
-      admin: admin
+      admin: $(openssl rand -base64 18)
     api_key_red: $API_KEY
     api_key_blue: $API_KEY
     CONF
-    nohup python3 server.py --insecure &
+    # WARNING: --insecure disables HTTPS. For lab use only.
+    # Production deployments MUST use TLS certificates.
+    nohup python3 server.py &
     echo "CALDERA_API_KEY=$API_KEY" > /opt/caldera/.api_key
   EOF
 

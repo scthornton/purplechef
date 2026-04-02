@@ -36,7 +36,7 @@ def _t1003_001(
         ],
         "tags": [
             "attack.credential_access",
-            f"attack.{technique_id.lower().replace('.', '_')}",
+            f"attack.{technique_id.lower()}",
         ],
         "logsource": {
             "category": "process_access",
@@ -90,7 +90,7 @@ def _t1003_002(
         ],
         "tags": [
             "attack.credential_access",
-            f"attack.{technique_id.lower().replace('.', '_')}",
+            f"attack.{technique_id.lower()}",
         ],
         "logsource": {
             "category": "process_creation",
@@ -146,7 +146,7 @@ def _t1059_001(
         "tags": [
             "attack.execution",
             "attack.defense_evasion",
-            f"attack.{technique_id.lower().replace('.', '_')}",
+            f"attack.{technique_id.lower()}",
         ],
         "logsource": {
             "category": "process_creation",
@@ -218,7 +218,7 @@ def _t1053_005(
         "tags": [
             "attack.execution",
             "attack.persistence",
-            f"attack.{technique_id.lower().replace('.', '_')}",
+            f"attack.{technique_id.lower()}",
         ],
         "logsource": {
             "category": "process_creation",
@@ -330,7 +330,7 @@ def _t1550_002(
         ],
         "tags": [
             "attack.lateral_movement",
-            f"attack.{technique_id.lower().replace('.', '_')}",
+            f"attack.{technique_id.lower()}",
         ],
         "logsource": {
             "category": "process_creation",
@@ -374,7 +374,7 @@ def _t1566_001(
         ],
         "tags": [
             "attack.initial_access",
-            f"attack.{technique_id.lower().replace('.', '_')}",
+            f"attack.{technique_id.lower()}",
         ],
         "logsource": {
             "category": "process_creation",
