@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Pydantic model
 # ---------------------------------------------------------------------------
 
+
 class AuditEvent(BaseModel):
     """Single audit record written as one JSON line.
 
@@ -55,6 +56,7 @@ class AuditEvent(BaseModel):
 # ---------------------------------------------------------------------------
 # Logger
 # ---------------------------------------------------------------------------
+
 
 class AuditLogger:
     """Append-only JSONL writer for :class:`AuditEvent` records.

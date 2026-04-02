@@ -1,10 +1,11 @@
 [project]
 name = "chef-detection-kitchen"
 version = "0.1.0"
-description = "Detection Kitchen — test-driven detection engineering pipeline. (Phase 2)"
+description = "Detection Kitchen — test-driven detection engineering pipeline."
 requires-python = ">=3.12"
 dependencies = [
     "chef-pantry",
+    "pyyaml>=6.0",
 ]
 
 [tool.uv.sources]

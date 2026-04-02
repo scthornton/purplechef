@@ -15,9 +15,7 @@ from chef_recipes.recipe_loader import discover_recipes, load_recipe
 
 
 class TestLoadRecipeValid:
-    def test_loads_valid_recipe(
-        self, tmp_path: Path, sample_recipe_dict: dict
-    ) -> None:
+    def test_loads_valid_recipe(self, tmp_path: Path, sample_recipe_dict: dict) -> None:
         recipe_file = tmp_path / "recipe.yml"
         recipe_file.write_text(yaml.dump(sample_recipe_dict), encoding="utf-8")
 
@@ -26,9 +24,7 @@ class TestLoadRecipeValid:
         assert recipe.metadata.author == "scott"
         assert recipe.attack.method == "caldera"
 
-    def test_loads_yaml_extension(
-        self, tmp_path: Path, sample_recipe_dict: dict
-    ) -> None:
+    def test_loads_yaml_extension(self, tmp_path: Path, sample_recipe_dict: dict) -> None:
         recipe_file = tmp_path / "recipe.yaml"
         recipe_file.write_text(yaml.dump(sample_recipe_dict), encoding="utf-8")
 
@@ -62,9 +58,7 @@ class TestLoadRecipeInvalidYaml:
             load_recipe(bad_file)
         assert "yaml" in str(exc_info.value).lower() or "invalid" in str(exc_info.value).lower()
 
-    def test_yaml_list_instead_of_mapping_raises_recipe_error(
-        self, tmp_path: Path
-    ) -> None:
+    def test_yaml_list_instead_of_mapping_raises_recipe_error(self, tmp_path: Path) -> None:
         list_file = tmp_path / "list.yml"
         list_file.write_text("- item1\n- item2\n", encoding="utf-8")
         with pytest.raises(RecipeError) as exc_info:
@@ -104,7 +98,10 @@ class TestLoadRecipeSchemaViolation:
 
         with pytest.raises(ValidationError) as exc_info:
             load_recipe(recipe_file)
-        assert "schema validation failed" in str(exc_info.value).lower() or exc_info.value.field == "recipe"
+        assert (
+            "schema validation failed" in str(exc_info.value).lower()
+            or exc_info.value.field == "recipe"
+        )
 
     def test_caldera_method_without_caldera_spec_raises_validation_error(
         self, tmp_path: Path, sample_recipe_dict: dict

@@ -1,1 +1,1 @@
-"""Chef Detection Kitchen — test-driven detection engineering. (Phase 2)"""
+"""Chef Detection Kitchen — test-driven detection engineering pipeline."""

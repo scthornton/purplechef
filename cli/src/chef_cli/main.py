@@ -45,7 +45,9 @@ def recipe() -> None:
 @recipe.command("run")
 @click.argument("path", type=click.Path(exists=True, path_type=Path))
 @click.option("--live", is_flag=True, help="Disable dry-run safety (execute for real)")
-@click.option("--output", "-o", type=click.Path(path_type=Path), default=None, help="Output directory")
+@click.option(
+    "--output", "-o", type=click.Path(path_type=Path), default=None, help="Output directory"
+)
 def recipe_run(path: Path, live: bool, output: Path | None) -> None:
     """Run a purple team recipe end-to-end."""
     console.print(BANNER)
@@ -65,7 +67,9 @@ async def _run_recipe(path: Path, *, dry_run: bool, output_dir: Path | None) -> 
     effective_dry_run = dry_run or settings.dry_run
 
     if effective_dry_run:
-        console.print("[yellow]🔒 Dry-run mode[/] — no attacks will execute. Use --live to run for real.\n")
+        console.print(
+            "[yellow]🔒 Dry-run mode[/] — no attacks will execute. Use --live to run for real.\n"
+        )
     else:
         console.print("[red]⚡ LIVE mode[/] — attacks WILL execute against targets.\n")
 
@@ -197,10 +201,173 @@ def detect() -> None:
 
 @detect.command("generate")
 @click.argument("technique_id")
-def detect_generate(technique_id: str) -> None:
-    """Generate a Sigma detection rule for a MITRE technique. (Phase 2)"""
-    console.print("[yellow]Detection Kitchen is coming in Phase 2.[/]")
-    console.print(f"Will generate Sigma rule for {technique_id}")
+@click.option("--llm", is_flag=True, help="Use LLM if no deterministic template exists")
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=None)
+def detect_generate(technique_id: str, llm: bool, output: Path | None) -> None:
+    """Generate a Sigma detection rule for a MITRE technique."""
+    asyncio.run(_detect_generate(technique_id, use_llm=llm, output_path=output))
+
+
+async def _detect_generate(technique_id: str, *, use_llm: bool, output_path: Path | None) -> None:
+    from chef_detection.rule_generator import generate_rule
+    from chef_detection.rule_validator import validate_sigma
+    from chef_detection.sigma_templates import has_template, render_sigma_yaml
+
+    console.print(f"\n[bold]Generating Sigma rule for[/] [cyan]{technique_id}[/]\n")
+
+    llm_client = None
+    if use_llm and not has_template(technique_id):
+        from chef_pantry.clients.llm import LLMClient
+        from chef_pantry.config import get_settings
+
+        settings = get_settings()
+        llm_client = LLMClient(
+            base_url=settings.llm.base_url,
+            api_key=settings.llm.api_key,
+            model=settings.llm.model,
+        )
+
+    try:
+        rule_dict, source = await generate_rule(technique_id, llm_client=llm_client)
+    except ValueError as exc:
+        console.print(f"[red]✗[/] {exc}")
+        console.print("[dim]Tip: use --llm to generate via LLM when no template exists[/]")
+        sys.exit(1)
+        return
+    finally:
+        if llm_client:
+            await llm_client.close()
+
+    # Validate
+    validation = validate_sigma(rule_dict)
+    source_label = "[green]template[/]" if source == "template" else "[yellow]LLM draft[/]"
+    console.print(f"  Source: {source_label}")
+
+    if validation.is_valid:
+        console.print("  [green]✓[/] Sigma validation passed")
+    else:
+        for err in validation.errors:
+            console.print(f"  [red]✗[/] {err}")
+    for warn in validation.warnings:
+        console.print(f"  [yellow]⚠[/] {warn}")
+
+    # Output
+    yaml_str = render_sigma_yaml(rule_dict)
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(yaml_str, encoding="utf-8")
+        console.print(f"\n[green]📄 Saved:[/] {output_path}")
+    else:
+        console.print("\n[bold]Generated rule:[/]")
+        console.print(f"[dim]{'─' * 60}[/]")
+        console.print(yaml_str)
+        console.print(f"[dim]{'─' * 60}[/]")
+
+
+@detect.command("validate")
+@click.argument("path", type=click.Path(exists=True, path_type=Path))
+def detect_validate(path: Path) -> None:
+    """Validate a Sigma rule file."""
+    from chef_detection.rule_validator import validate_sigma_yaml
+
+    console.print(f"\n[bold]Validating:[/] {path}\n")
+    yaml_str = path.read_text(encoding="utf-8")
+    result = validate_sigma_yaml(yaml_str)
+
+    if result.is_valid:
+        console.print("  [green]✓[/] Sigma rule is valid")
+    for err in result.errors:
+        console.print(f"  [red]✗[/] {err}")
+    for warn in result.warnings:
+        console.print(f"  [yellow]⚠[/] {warn}")
+
+    if not result.is_valid:
+        sys.exit(1)
+
+
+@detect.command("templates")
+def detect_templates() -> None:
+    """List available deterministic Sigma templates."""
+    from chef_detection.sigma_templates import list_templates
+    from chef_pantry.mitre.resolver import MitreResolver
+
+    templates = list_templates()
+    table = Table(title="Available Sigma Templates", border_style="cyan")
+    table.add_column("Technique", style="bold")
+    table.add_column("Name")
+    table.add_column("Tactic", style="dim")
+
+    for tid in templates:
+        technique = MitreResolver.build_technique(tid)
+        table.add_row(tid, technique.name, technique.tactic)
+
+    console.print(table)
+    console.print(
+        f"\n[dim]{len(templates)} templates available. Use `chef detect generate <ID>` to render.[/]"
+    )
+
+
+@detect.command("test-data")
+@click.argument("technique_id")
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=None)
+def detect_test_data(technique_id: str, output: Path | None) -> None:
+    """Generate synthetic test events for a technique."""
+    asyncio.run(_detect_test_data(technique_id, output_path=output))
+
+
+async def _detect_test_data(technique_id: str, *, output_path: Path | None) -> None:
+    from chef_detection.sigma_templates import get_template
+    from chef_detection.test_data_generator import generate_test_data_deterministic, to_jsonl
+
+    console.print(f"\n[bold]Generating test data for[/] [cyan]{technique_id}[/]\n")
+
+    template_fn = get_template(technique_id)
+    if template_fn is None:
+        console.print(f"[yellow]⚠[/] No template for {technique_id} — generating minimal test data")
+        rule_dict = {}
+    else:
+        rule_dict = template_fn(technique_id)
+
+    test_data = generate_test_data_deterministic(technique_id, rule_dict)
+
+    console.print(f"  Positive events: {len(test_data.positive_events)}")
+    console.print(f"  Negative events: {len(test_data.negative_events)}")
+
+    jsonl = to_jsonl(test_data)
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(jsonl, encoding="utf-8")
+        console.print(f"\n[green]📄 Saved:[/] {output_path}")
+    else:
+        console.print("\n[bold]Test events:[/]")
+        for line in jsonl.strip().split("\n")[:6]:
+            console.print(f"  [dim]{line[:100]}{'...' if len(line) > 100 else ''}[/]")
+        total = len(test_data.positive_events) + len(test_data.negative_events)
+        if total > 6:
+            console.print(f"  [dim]... and {total - 6} more[/]")
+
+
+@detect.command("report")
+@click.argument("results_dir", type=click.Path(exists=True, path_type=Path))
+@click.option("--format", "-f", "fmt", multiple=True, default=["html", "navigator"])
+def detect_report(results_dir: Path, fmt: tuple[str, ...]) -> None:
+    """Generate coverage report from recipe run results."""
+    import json as json_mod
+
+    from chef_detection.coverage_reporter import save_report
+    from chef_pantry.models.evidence import CoverageResult
+
+    json_files = sorted(results_dir.glob("*.json"))
+    if not json_files:
+        console.print("[yellow]No JSON result files found.[/]")
+        sys.exit(1)
+
+    for jf in json_files:
+        data = json_mod.loads(jf.read_text())
+        result = CoverageResult.model_validate(data)
+        paths = save_report(result, results_dir, list(fmt))
+        for p in paths:
+            console.print(f"[green]📄 Generated:[/] {p}")
 
 
 @cli.group()
