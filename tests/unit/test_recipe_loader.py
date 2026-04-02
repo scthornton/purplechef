@@ -6,10 +6,8 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from chef_pantry.errors import RecipeError, ValidationError
 from chef_recipes.recipe_loader import discover_recipes, load_recipe
-
 
 # ---------------------------------------------------------------------------
 # load_recipe — valid YAML

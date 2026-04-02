@@ -10,9 +10,9 @@ from __future__ import annotations
 import atexit
 import logging
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -42,12 +42,12 @@ class AuditEvent(BaseModel):
         success:    Whether the action completed without error.
     """
 
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     event_type: str
     actor: str
     action: str
-    target: Optional[str] = None
-    detail: Optional[Dict[str, Any]] = None
+    target: str | None = None
+    detail: dict[str, Any] | None = None
     dry_run: bool = False
     success: bool = True
 
@@ -84,8 +84,8 @@ class AuditLogger:
         actor: str,
         action: str,
         *,
-        target: Optional[str] = None,
-        detail: Optional[Dict[str, Any]] = None,
+        target: str | None = None,
+        detail: dict[str, Any] | None = None,
         dry_run: bool = False,
         success: bool = True,
     ) -> AuditEvent:
@@ -152,7 +152,7 @@ class AuditLogger:
 # ---------------------------------------------------------------------------
 
 _singleton_lock = threading.Lock()
-_singleton: Optional[AuditLogger] = None
+_singleton: AuditLogger | None = None
 
 
 def get_audit_logger() -> AuditLogger:

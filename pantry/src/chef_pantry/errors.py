@@ -69,7 +69,7 @@ class ValidationError(ChefError):
         return f"Validation error on '{self.field}': {self.detail}"
 
 
-class DryRunBlocked(ChefError):
+class DryRunBlockedError(ChefError):
     """Signals that dry-run mode prevented execution.
 
     This is not a failure -- it indicates the safety guardrail is working.

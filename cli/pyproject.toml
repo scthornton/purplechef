@@ -10,5 +10,9 @@ dependencies = [
     "rich>=13.0",
 ]
 
+[tool.uv.sources]
+chef-pantry = { workspace = true }
+chef-recipe-book = { workspace = true }
+
 [project.scripts]
 chef = "chef_cli.main:cli"

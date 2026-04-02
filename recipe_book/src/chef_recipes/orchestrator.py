@@ -7,28 +7,26 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime, timezone
-from enum import Enum
-from pathlib import Path
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
-
-from rich.console import Console
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from chef_pantry.audit import AuditLogger
 from chef_pantry.clients.caldera import CalderaClient
 from chef_pantry.clients.limacharlie import LimaCharlieClient
-from chef_pantry.errors import DryRunBlocked
+from chef_pantry.errors import DryRunBlockedError
 from chef_pantry.mitre.resolver import MitreResolver
 from chef_pantry.models.evidence import CoverageResult, DetectionMatch, EvidenceChain
 from chef_pantry.models.recipe import Recipe
 from chef_pantry.models.technique import ResolvedTechnique
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 console = Console()
 
 
-class Phase(str, Enum):
+class Phase(StrEnum):
     LOAD = "load"
     RESOLVE = "resolve"
     EXECUTE = "execute"
@@ -81,7 +79,7 @@ class RecipeOrchestrator:
             result = self._phase_report(recipe, evidence)
             self._phase = Phase.DONE
             return result
-        except DryRunBlocked as exc:
+        except DryRunBlockedError as exc:
             console.print(f"\n[yellow]⏸ Dry-run blocked:[/] {exc.detail}")
             self._log("dry_run_blocked", detail=str(exc))
             self._phase = Phase.DONE
@@ -172,12 +170,12 @@ class RecipeOrchestrator:
             "method": "caldera",
             "operation_id": operation_id,
             "steps_executed": len(chain),
-            "start_time": datetime.now(timezone.utc).isoformat(),
+            "start_time": datetime.now(UTC).isoformat(),
         }
 
     async def _phase_wait(self, recipe: Recipe) -> None:
         self._phase = Phase.WAIT
-        wait = recipe.validate.wait_seconds
+        wait = recipe.validate_spec.wait_seconds
         console.print(f"\n[bold]⏳ Wait[/] — {wait}s for telemetry propagation")
         with Progress(
             SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
@@ -194,11 +192,11 @@ class RecipeOrchestrator:
         self._phase = Phase.VALIDATE
         console.print("\n[bold]🔍 Validate[/] — checking for detections")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # Look back over the execution + wait window
-        lookback_seconds = recipe.validate.wait_seconds + 600
+        lookback_seconds = recipe.validate_spec.wait_seconds + 600
         window_start = datetime.fromtimestamp(
-            now.timestamp() - lookback_seconds, tz=timezone.utc
+            now.timestamp() - lookback_seconds, tz=UTC
         )
 
         chains: list[EvidenceChain] = []
@@ -244,7 +242,7 @@ class RecipeOrchestrator:
         result = CoverageResult(
             recipe_name=recipe.name,
             run_id=self._run_id,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             evidence_chains=chains,
         )
         detected = result.detected_count
@@ -266,7 +264,7 @@ class RecipeOrchestrator:
         return CoverageResult(
             recipe_name=recipe.name,
             run_id=self._run_id,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             evidence_chains=[],
         )
 

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 
-from chef_pantry.errors import CalderaError, DryRunBlocked
+from chef_pantry.errors import CalderaError, DryRunBlockedError
 
 
 class CalderaClient:
@@ -102,7 +102,7 @@ class CalderaClient:
     ) -> dict[str, Any]:
         self._audit_log("create_adversary", target=name, abilities=ability_ids)
         if self._dry_run:
-            raise DryRunBlocked(
+            raise DryRunBlockedError(
                 action=f"create_adversary: Would create adversary '{name}'"
             )
         payload = {
@@ -127,7 +127,7 @@ class CalderaClient:
             "create_operation", target=name, adversary=adversary_id, group=group
         )
         if self._dry_run:
-            raise DryRunBlocked(
+            raise DryRunBlockedError(
                 action=f"create_operation: Would run adversary '{adversary_id}' against group '{group}'"
             )
         payload = {
@@ -148,8 +148,8 @@ class CalderaClient:
         self, operation_id: str, *, interval: int = 10, timeout: int = 300
     ) -> dict[str, Any]:
         """Poll an operation until it completes or times out."""
-        deadline = datetime.now(timezone.utc).timestamp() + timeout
-        while datetime.now(timezone.utc).timestamp() < deadline:
+        deadline = datetime.now(UTC).timestamp() + timeout
+        while datetime.now(UTC).timestamp() < deadline:
             op = await self.get_operation(operation_id)
             state = op.get("state", "unknown")
             if state in ("finished", "cleanup"):

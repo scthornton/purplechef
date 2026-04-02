@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import List
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,7 +19,7 @@ class CalderaSettings(BaseSettings):
 
     url: str = "http://localhost:8888"
     api_key: str = ""
-    allowed_groups: List[str] = Field(default_factory=list)
+    allowed_groups: list[str] = Field(default_factory=list)
 
 
 class LimaCharlieSettings(BaseSettings):

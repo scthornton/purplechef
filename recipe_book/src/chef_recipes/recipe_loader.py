@@ -6,17 +6,16 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import ValidationError as PydanticValidationError
-
 from chef_pantry.errors import RecipeError, ValidationError
 from chef_pantry.models.recipe import Recipe
+from pydantic import ValidationError as PydanticValidationError
 
 
 def load_recipe(path: Path) -> Recipe:
     """Load a recipe from a YAML file, validate, and return the model."""
     if not path.exists():
         raise RecipeError(recipe_name=str(path), detail=f"Recipe file not found: {path}")
-    if not path.suffix in (".yml", ".yaml"):
+    if path.suffix not in (".yml", ".yaml"):
         raise RecipeError(recipe_name=str(path), detail="Recipe must be a .yml or .yaml file")
 
     raw = path.read_text(encoding="utf-8")

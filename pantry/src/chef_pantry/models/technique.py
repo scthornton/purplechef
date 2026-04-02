@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, computed_field
 
@@ -11,7 +11,7 @@ class MitreTechnique(BaseModel):
     id: str
     name: str
     tactic: str
-    description: Optional[str] = None
+    description: str | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -22,6 +22,6 @@ class MitreTechnique(BaseModel):
 
 class ResolvedTechnique(BaseModel):
     technique: MitreTechnique
-    caldera_ability_id: Optional[str] = None
-    atomic_test_numbers: Optional[list[int]] = None
+    caldera_ability_id: str | None = None
+    atomic_test_numbers: list[int] | None = None
     resolution_source: Literal["caldera", "atomic", "manual"]
