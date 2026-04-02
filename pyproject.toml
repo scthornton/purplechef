@@ -1,0 +1,37 @@
+[project]
+name = "sec598-chef"
+version = "0.1.0"
+description = "Purple team recipe platform — deploy, attack, detect, validate, report."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [{ name = "Scott Thornton" }]
+keywords = ["security", "purple-team", "detection-engineering", "caldera", "mitre-attack"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Information Technology",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.uv.workspace]
+members = ["pantry", "recipe_book", "detection_kitchen", "hardening_kitchen", "cli"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "respx>=0.22",
+    "ruff>=0.8",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "TCH"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

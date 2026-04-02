@@ -1,0 +1,8 @@
+[project]
+name = "chef-hardening-kitchen"
+version = "0.1.0"
+description = "Hardening Kitchen — Ansible to Chef + InSpec translation. (Phase 3)"
+requires-python = ">=3.12"
+dependencies = [
+    "chef-pantry",
+]

@@ -1,0 +1,14 @@
+[project]
+name = "chef-cli"
+version = "0.1.0"
+description = "SEC598 Chef CLI — unified command-line interface."
+requires-python = ">=3.12"
+dependencies = [
+    "chef-pantry",
+    "chef-recipe-book",
+    "click>=8.1",
+    "rich>=13.0",
+]
+
+[project.scripts]
+chef = "chef_cli.main:cli"

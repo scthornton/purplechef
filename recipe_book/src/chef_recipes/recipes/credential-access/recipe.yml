@@ -1,0 +1,63 @@
+name: lsass-memory-dump
+version: "1.0"
+description: >
+  Emulate OS credential dumping via LSASS memory access (T1003.001).
+  Validates whether endpoint detection fires on the technique, produces
+  an evidence chain linking emulation to detection, and drafts a Sigma
+  rule if the technique was missed.
+
+metadata:
+  author: scott-thornton
+  mitre_techniques:
+    - T1003.001
+  mitre_tactics:
+    - credential-access
+  difficulty: beginner
+  estimated_time: 15m
+  tags:
+    - windows
+    - credential-access
+    - lsass
+    - purple-team
+    - sec598
+
+mise_en_place:
+  terraform_module: windows-target
+  ansible_roles:
+    - limacharlie-sensor
+    - atomic-install
+  prerequisites:
+    caldera_server_running: true
+    limacharlie_org_configured: true
+
+attack:
+  method: caldera
+  caldera:
+    adversary_name: chef-lsass-dump
+    abilities:
+      - technique_id: T1003.001
+        ability_id: auto
+        description: Dump LSASS process memory for credential extraction
+    group: chef-targets
+    timeout: 300
+
+validate:
+  detection_source: limacharlie
+  wait_seconds: 120
+  expected_rules:
+    - name: LSASS Access
+      tags:
+        - t1003
+  sigma_rules:
+    - path: sigma-rules/lsass-access.yml
+
+report:
+  format:
+    - json
+    - html
+    - navigator
+  evidence_required: true
+
+advise:
+  generate_sigma: true
+  generate_kql: false

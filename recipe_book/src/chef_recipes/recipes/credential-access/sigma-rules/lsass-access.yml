@@ -1,0 +1,36 @@
+title: LSASS Memory Access via Process Handle
+id: chef-t1003-001-lsass-access
+status: experimental
+level: high
+description: >
+  Detects processes accessing LSASS memory, which may indicate credential
+  dumping (Mimikatz, procdump, comsvcs.dll, or custom tools).
+  Maps to MITRE ATT&CK T1003.001 (OS Credential Dumping: LSASS Memory).
+author: SEC598 Chef
+date: 2026/04/01
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+tags:
+  - attack.credential_access
+  - attack.t1003.001
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    GrantedAccess|contains:
+      - '0x1010'
+      - '0x1038'
+      - '0x1F0FFF'
+      - '0x1F1FFF'
+  filter_known_good:
+    SourceImage|endswith:
+      - '\wmiprvse.exe'
+      - '\svchost.exe'
+      - '\MsMpEng.exe'
+      - '\csrss.exe'
+  condition: selection and not filter_known_good
+falsepositives:
+  - Legitimate security tools that inspect LSASS
+  - Endpoint protection products not in the filter list

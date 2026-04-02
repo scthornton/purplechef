@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+*.lock
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# Ansible
+*.retry
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reports (generated)
+reports/
+*.html
+!docs/**/*.html
+
+# Keys and secrets
+*.pem
+*.key
+*.secret
