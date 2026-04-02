@@ -656,18 +656,48 @@ def recipe_notify(result_path: Path, webhook: str, slack: bool) -> None:
     asyncio.run(_recipe_notify(result_path, webhook, slack))
 
 
-async def _recipe_notify(result_path: Path, webhook_url: str, slack: bool) -> None:
+def _redact_url(url: str) -> str:
+    """Redact webhook URL to avoid leaking secrets in logs/output."""
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    host = parsed.hostname or "unknown"
+    return f"{parsed.scheme}://{host}/***"
+
+
+async def _recipe_notify(result_path: Path, webhook_url: str, use_slack: bool) -> None:
     import json as json_mod
 
     from chef_pantry.models.evidence import CoverageResult
-    from chef_recipes.webhooks import WebhookConfig, send_webhook
+    from chef_recipes.webhooks import WebhookConfig, build_slack_payload, send_webhook
 
     data = json_mod.loads(result_path.read_text())
     result = CoverageResult.model_validate(data)
-    config = WebhookConfig(url=webhook_url)
 
-    console.print(f"[bold]Sending to[/] {webhook_url}")
-    success = await send_webhook(config, result)
+    redacted = _redact_url(webhook_url)
+    console.print(f"[bold]Sending to[/] {redacted}")
+
+    if use_slack:
+        # Use Slack Block Kit formatting
+        slack_payload = build_slack_payload(result)
+        config = WebhookConfig(
+            url=webhook_url,
+            headers={"Content-Type": "application/json"},
+        )
+        import httpx
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                webhook_url,
+                json=slack_payload,
+                headers=config.headers,
+                timeout=15.0,
+            )
+            success = 200 <= resp.status_code < 300
+    else:
+        config = WebhookConfig(url=webhook_url)
+        success = await send_webhook(config, result)
+
     if success:
         console.print("[green]✓[/] Webhook delivered")
     else:

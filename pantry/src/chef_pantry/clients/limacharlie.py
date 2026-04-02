@@ -55,16 +55,30 @@ class LimaCharlieClient:
         start: datetime | None = None,
         end: datetime | None = None,
         limit: int = 100,
+        max_pages: int = 10,
     ) -> list[dict[str, Any]]:
-        """Fetch recent detections within a time window."""
+        """Fetch recent detections within a time window, with pagination."""
         params: dict[str, Any] = {"limit": limit}
         if start:
             params["start"] = int(start.timestamp())
         if end:
             params["end"] = int(end.timestamp())
         self._audit_log("get_detections", **params)
-        data = await self._request("GET", f"/v1/detects/{self._oid}", params=params)
-        return data.get("detects", []) if data else []
+
+        all_detections: list[dict[str, Any]] = []
+        for _page in range(max_pages):
+            data = await self._request("GET", f"/v1/detects/{self._oid}", params=params)
+            if not data:
+                break
+            detections = data.get("detects", [])
+            all_detections.extend(detections)
+            # Check for continuation token
+            cursor = data.get("continuation_token") or data.get("cursor")
+            if not cursor or len(detections) < limit:
+                break
+            params["continuation_token"] = cursor
+
+        return all_detections
 
     async def find_detections_for_technique(
         self,
