@@ -35,5 +35,7 @@ def load_recipe(path: Path) -> Recipe:
 
 
 def discover_recipes(base_dir: Path) -> list[Path]:
-    """Find all recipe.yml files under a directory."""
-    return sorted(base_dir.rglob("recipe.yml"))
+    """Find all recipe.yml and recipe.yaml files under a directory."""
+    yml = set(base_dir.rglob("recipe.yml"))
+    yaml = set(base_dir.rglob("recipe.yaml"))
+    return sorted(yml | yaml)
