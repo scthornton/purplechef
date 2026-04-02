@@ -76,13 +76,20 @@ class RecipeOrchestrator:
         try:
             resolved = await self._phase_resolve(recipe)
             emulation = await self._phase_execute(recipe, resolved)
-            await self._phase_wait(recipe)
-            evidence = await self._phase_validate(recipe, emulation)
+
+            # Only validate if something actually executed
+            if emulation.get("status") in ("skipped", "no_abilities"):
+                console.print("\n[yellow]⏭ Skipping validation[/] — no attack was executed")
+                evidence = self._build_not_executed_chains(recipe)
+            else:
+                await self._phase_wait(recipe)
+                evidence = await self._phase_validate(recipe, emulation)
+
             result = self._phase_report(recipe, evidence)
             self._phase = Phase.DONE
             return result
         except DryRunBlockedError as exc:
-            console.print(f"\n[yellow]⏸ Dry-run blocked:[/] {exc.detail}")
+            console.print(f"\n[yellow]⏸ Dry-run blocked:[/] {exc}")
             self._log("dry_run_blocked", detail=str(exc))
             self._phase = Phase.DONE
             return self._empty_result(recipe)
@@ -127,18 +134,22 @@ class RecipeOrchestrator:
         if spec is None:
             raise ValueError("Caldera attack spec missing")
 
-        # Collect ability IDs
+        # Collect ability IDs — honor explicit recipe ability_ids, fall back to resolver
         ability_ids = []
+        recipe_abilities = {a.technique_id: a.ability_id for a in spec.abilities}
         for r in resolved:
-            if r.caldera_ability_id:
+            explicit_id = recipe_abilities.get(r.technique.id, "auto")
+            if explicit_id != "auto" and explicit_id:
+                ability_ids.append(explicit_id)
+            elif r.caldera_ability_id:
                 ability_ids.append(r.caldera_ability_id)
 
         if not ability_ids:
             console.print("  [yellow]⚠[/] No Caldera abilities resolved — skipping execution")
             return {"method": "caldera", "status": "no_abilities"}
 
-        # Create adversary
-        adversary_name = f"chef-{recipe.name}-{self._run_id}"
+        # Honor recipe's adversary_name, fall back to auto-generated
+        adversary_name = spec.adversary_name or f"chef-{recipe.name}-{self._run_id}"
         console.print(f"  Creating adversary: [cyan]{adversary_name}[/]")
         adversary = await self._caldera.create_adversary(
             name=adversary_name,
@@ -197,9 +208,18 @@ class RecipeOrchestrator:
         console.print("\n[bold]🔍 Validate[/] — checking for detections")
 
         now = datetime.now(UTC)
-        # Look back over the execution + wait window
-        lookback_seconds = recipe.validate_spec.wait_seconds + 600
-        window_start = datetime.fromtimestamp(now.timestamp() - lookback_seconds, tz=UTC)
+        # Use execution start time if available, else look back from now
+        exec_start_str = emulation.get("start_time")
+        if exec_start_str:
+            window_start = datetime.fromisoformat(exec_start_str)
+        else:
+            lookback = recipe.validate_spec.wait_seconds + 600
+            window_start = datetime.fromtimestamp(now.timestamp() - lookback, tz=UTC)
+
+        # Build expected rule name set for filtering
+        expected_rule_names = {
+            r["name"].lower() for r in recipe.validate_spec.expected_rules if "name" in r
+        }
 
         chains: list[EvidenceChain] = []
         for tid in recipe.metadata.mitre_techniques:
@@ -208,17 +228,22 @@ class RecipeOrchestrator:
                 tid, start=window_start, end=now
             )
 
-            matches = [
-                DetectionMatch(
-                    rule_name=d.get("detect", {}).get("detect_mtd", {}).get("name", "unknown"),
-                    source="limacharlie",
-                    timestamp=self._lc.detection_timestamp(d),
-                    alert_id=d.get("detect_id", "unknown"),
-                    tags=self._lc.extract_technique_tags(d),
-                    confidence=0.9 if detections else 0.0,
+            # Filter by expected_rules if specified
+            matches = []
+            for d in detections:
+                rule_name = d.get("detect", {}).get("detect_mtd", {}).get("name", "unknown")
+                if expected_rule_names and rule_name.lower() not in expected_rule_names:
+                    continue  # Skip detections from unexpected rules
+                matches.append(
+                    DetectionMatch(
+                        rule_name=rule_name,
+                        source="limacharlie",
+                        timestamp=self._lc.detection_timestamp(d),
+                        alert_id=d.get("detect_id", "unknown"),
+                        tags=self._lc.extract_technique_tags(d),
+                        confidence=0.9,
+                    )
                 )
-                for d in detections
-            ]
 
             status = "detected" if matches else "missed"
             chain = EvidenceChain(
@@ -237,6 +262,27 @@ class RecipeOrchestrator:
             console.print(f"  {icon} {tid} ({technique.name}): {status} ({len(matches)} alerts)")
 
         self._log("validated", detail={"chains": len(chains)})
+        return chains
+
+    def _build_not_executed_chains(self, recipe: Recipe) -> list[EvidenceChain]:
+        """Build evidence chains marked as 'error' when no attack executed."""
+        now = datetime.now(UTC)
+        chains = []
+        for tid in recipe.metadata.mitre_techniques:
+            technique = self._resolver.build_technique(tid)
+            chains.append(
+                EvidenceChain(
+                    technique=technique,
+                    emulation_id=self._run_id,
+                    execution_start=now,
+                    execution_end=now,
+                    detection_window_start=now,
+                    detection_window_end=now,
+                    detections=[],
+                    status="error",
+                    notes="Attack was not executed (skipped or manual method)",
+                )
+            )
         return chains
 
     def _phase_report(self, recipe: Recipe, chains: list[EvidenceChain]) -> CoverageResult:

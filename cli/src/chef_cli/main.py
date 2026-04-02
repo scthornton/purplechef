@@ -64,7 +64,7 @@ async def _run_recipe(path: Path, *, dry_run: bool, output_dir: Path | None) -> 
     from chef_recipes.recipe_loader import load_recipe
 
     settings = get_settings()
-    effective_dry_run = dry_run or settings.dry_run
+    effective_dry_run = dry_run or settings.safety.dry_run
 
     if effective_dry_run:
         console.print(
@@ -75,18 +75,18 @@ async def _run_recipe(path: Path, *, dry_run: bool, output_dir: Path | None) -> 
 
     recipe_model = load_recipe(path)
 
-    audit = AuditLogger(Path(settings.audit_log))
+    audit = AuditLogger(settings.safety.audit_log)
     async with (
         CalderaClient(
-            base_url=settings.caldera_url,
-            api_key=settings.caldera_api_key,
-            allowed_groups=settings.caldera_allowed_groups,
+            base_url=settings.caldera.url,
+            api_key=settings.caldera.api_key,
+            allowed_groups=settings.caldera.allowed_groups,
             dry_run=effective_dry_run,
             audit_logger=audit,
         ) as caldera,
         LimaCharlieClient(
-            oid=settings.lc_oid,
-            api_key=settings.lc_api_key,
+            oid=settings.limacharlie.oid,
+            api_key=settings.limacharlie.api_key,
             audit_logger=audit,
         ) as lc,
     ):
@@ -96,12 +96,16 @@ async def _run_recipe(path: Path, *, dry_run: bool, output_dir: Path | None) -> 
         )
         result = await orchestrator.run(recipe_model)
 
-    # Write results
+    # Write results using recipe's report spec
     out = output_dir or Path("reports")
     out.mkdir(parents=True, exist_ok=True)
-    report_path = out / f"{recipe_model.name}_{orchestrator.run_id}.json"
-    report_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
-    console.print(f"\n[green]📄 Report saved:[/] {report_path}")
+
+    from chef_detection.coverage_reporter import save_report
+
+    formats = recipe_model.report.format
+    saved = save_report(result, out, formats)
+    for p in saved:
+        console.print(f"[green]📄 Report saved:[/] {p}")
     audit.close()
 
 
@@ -362,12 +366,25 @@ def detect_report(results_dir: Path, fmt: tuple[str, ...]) -> None:
         console.print("[yellow]No JSON result files found.[/]")
         sys.exit(1)
 
+    loaded = 0
     for jf in json_files:
+        # Skip generated artifacts (navigator layers, non-coverage JSON)
+        if jf.name.endswith("_navigator.json"):
+            continue
         data = json_mod.loads(jf.read_text())
+        # Only process files that look like CoverageResults
+        if "evidence_chains" not in data:
+            console.print(f"  [dim]Skipping non-coverage file: {jf.name}[/]")
+            continue
         result = CoverageResult.model_validate(data)
         paths = save_report(result, results_dir, list(fmt))
         for p in paths:
             console.print(f"[green]📄 Generated:[/] {p}")
+        loaded += 1
+
+    if loaded == 0:
+        console.print("[yellow]No coverage result files found (need evidence_chains field).[/]")
+        sys.exit(1)
 
 
 @cli.group()
