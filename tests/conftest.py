@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for SEC598 Chef test suite."""
+"""Shared pytest fixtures for PurpleChef test suite."""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def sample_recipe_dict() -> dict:
                 "abilities": [
                     {"technique_id": "T1003.001", "ability_id": "auto"},
                 ],
-                "group": "sec598-lab",
+                "group": "chef-targets",
                 "timeout": 300,
             },
         },

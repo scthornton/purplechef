@@ -19,7 +19,7 @@ def dry_client() -> CalderaClient:
     return CalderaClient(
         base_url=BASE_URL,
         api_key=API_KEY,
-        allowed_groups=["sec598-lab"],
+        allowed_groups=["chef-targets"],
         dry_run=True,
     )
 
@@ -30,7 +30,7 @@ def live_client() -> CalderaClient:
     return CalderaClient(
         base_url=BASE_URL,
         api_key=API_KEY,
-        allowed_groups=["sec598-lab"],
+        allowed_groups=["chef-targets"],
         dry_run=False,
     )
 
@@ -152,7 +152,7 @@ class TestCreateOperation:
             await dry_client.create_operation(
                 name="op-1",
                 adversary_id="adv-1",
-                group="sec598-lab",
+                group="chef-targets",
             )
 
     @respx.mock
@@ -166,7 +166,7 @@ class TestCreateOperation:
         result = await live_client.create_operation(
             name="op-1",
             adversary_id="adv-1",
-            group="sec598-lab",
+            group="chef-targets",
         )
         assert result["state"] == "running"
 

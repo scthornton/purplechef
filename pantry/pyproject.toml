@@ -1,7 +1,7 @@
 [project]
 name = "chef-pantry"
 version = "0.1.0"
-description = "Shared library for SEC598 Chef — models, clients, and utilities."
+description = "Shared library for PurpleChef — models, clients, and utilities."
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.9",

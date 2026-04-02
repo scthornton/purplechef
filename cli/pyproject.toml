@@ -1,7 +1,7 @@
 [project]
 name = "chef-cli"
 version = "0.1.0"
-description = "SEC598 Chef CLI — unified command-line interface."
+description = "PurpleChef CLI — unified command-line interface."
 requires-python = ">=3.12"
 dependencies = [
     "chef-pantry",

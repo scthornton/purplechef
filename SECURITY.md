@@ -2,7 +2,7 @@
 
 ## Scope
 
-SEC598 Chef is a security testing tool. It is designed to run in **authorized lab environments** against systems you own or have explicit permission to test.
+PurpleChef is a security testing tool. It is designed to run in **authorized lab environments** against systems you own or have explicit permission to test.
 
 ## Safety Features
 
@@ -13,7 +13,7 @@ SEC598 Chef is a security testing tool. It is designed to run in **authorized la
 
 ## Reporting Vulnerabilities
 
-If you discover a security issue in SEC598 Chef itself, please report it responsibly:
+If you discover a security issue in PurpleChef itself, please report it responsibly:
 
 1. Do **not** open a public GitHub issue
 2. Email: scthornton@gmail.com

@@ -1,19 +1,19 @@
 # Getting Started
 
-This guide walks you through running your first SEC598 Chef recipe.
+This guide walks you through running your first PurpleChef recipe.
 
 ## Prerequisites
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager
-- Access to a Caldera server (SEC598 lab or standalone)
+- Access to a Caldera server (standalone)
 - LimaCharlie organization (free tier works)
 
 ## Installation
 
 ```bash
-git clone https://github.com/scthornton/sec598-chef.git
-cd sec598-chef
+git clone https://github.com/scthornton/purplechef.git
+cd purplechef
 uv sync --all-packages
 ```
 

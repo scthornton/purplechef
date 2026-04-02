@@ -1,10 +1,10 @@
-# SEC598 Chef
+# PurpleChef
 
 **Purple team recipe platform — deploy, attack, detect, validate, report.**
 
 ## What is this?
 
-SEC598 Chef is a structured automation framework for purple team exercises. You write declarative YAML "recipes" that describe an adversary technique, point Chef at your lab environment, and it handles the full lifecycle: spinning up infrastructure, executing the attack via Caldera, validating whether your detections fired in LimaCharlie, and producing an evidence-backed coverage report mapped to MITRE ATT&CK. If a technique was missed, Chef drafts a Sigma rule so you leave every exercise with better coverage than you started.
+PurpleChef is a structured automation framework for purple team exercises. You write declarative YAML "recipes" that describe an adversary technique, point Chef at your lab environment, and it handles the full lifecycle: spinning up infrastructure, executing the attack via Caldera, validating whether your detections fired in LimaCharlie, and producing an evidence-backed coverage report mapped to MITRE ATT&CK. If a technique was missed, Chef drafts a Sigma rule so you leave every exercise with better coverage than you started.
 
 
 ## Architecture
@@ -45,8 +45,8 @@ The **Recipe Book** is the execution engine. The **Detection Kitchen** and **Har
 
 ```bash
 # Clone and install
-git clone https://github.com/scthornton/sec598-chef.git
-cd sec598-chef
+git clone https://github.com/scthornton/purplechef.git
+cd purplechef
 uv sync
 
 # Configure credentials
@@ -167,7 +167,7 @@ LOAD → RESOLVE → EXECUTE → WAIT → VALIDATE → REPORT → DONE
 ## Project Structure
 
 ```
-sec598-chef/
+purplechef/
 ├── cli/                          # Click CLI — the `chef` command
 │   └── src/chef_cli/main.py
 ├── recipe_book/                  # Phase 1 — orchestration engine

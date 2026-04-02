@@ -19,7 +19,7 @@ metadata:
     - credential-access
     - lsass
     - purple-team
-    - sec598
+    - purplechef
 
 mise_en_place:
   terraform_module: windows-target

@@ -1,1 +1,1 @@
-"""SEC598 Chef CLI."""
+"""PurpleChef CLI."""

@@ -1,4 +1,4 @@
-"""SEC598 Chef — unified CLI for purple team automation.
+"""PurpleChef — unified CLI for purple team automation.
 
 Usage:
     chef recipe run <path>      Run a purple team recipe
@@ -22,21 +22,19 @@ from rich.table import Table
 console = Console()
 
 BANNER = r"""[cyan]
-   _____ ______ _____ ______ ___   ___
-  / ____|  ____/ ____|  ____/ _ \ / _ \
- | (___ | |__ | |    | |__ | (_) | (_) |
-  \___ \|  __|| |    |__  |\__, |> _ <
-  ____) | |___| |___ | |___  / /| (_) |
- |_____/|______\_____|______/_/  \___/
-            [bold white]C · H · E · F[/bold white]
+  ____              _       ____ _          __
+ |  _ \ _   _ _ __ | |__   / ___| |__   ___/ _|
+ | |_) | | | | '_ \| '_ \ | |   | '_ \ / _ \ |_
+ |  __/| |_| | |  | | | | | |___| | | |  __/  _|
+ |_|    \__,_|_|  |_|_| |_|\____|_| |_|\___|_|
 [/cyan][dim]  Purple Team Recipe Platform[/dim]
 """
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="sec598-chef")
+@click.version_option(version="0.1.0", prog_name="purplechef")
 def cli() -> None:
-    """SEC598 Chef — deploy, attack, detect, validate, report."""
+    """PurpleChef — deploy, attack, detect, validate, report."""
     pass
 
 

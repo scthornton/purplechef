@@ -6,7 +6,7 @@ description: >
   Detects processes accessing LSASS memory, which may indicate credential
   dumping (Mimikatz, procdump, comsvcs.dll, or custom tools).
   Maps to MITRE ATT&CK T1003.001 (OS Credential Dumping: LSASS Memory).
-author: SEC598 Chef
+author: PurpleChef
 date: 2026/04/01
 references:
   - https://attack.mitre.org/techniques/T1003/001/
