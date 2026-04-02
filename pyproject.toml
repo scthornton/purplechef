@@ -1,6 +1,6 @@
 [project]
 name = "purplechef"
-version = "0.1.0"
+version = "0.9.0"
 description = "Purple team recipe platform — deploy, attack, detect, validate, report."
 readme = "README.md"
 license = { text = "MIT" }

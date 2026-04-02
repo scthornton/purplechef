@@ -30,7 +30,7 @@ BANNER = r"""[cyan]
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="purplechef")
+@click.version_option(version="0.9.0", prog_name="purplechef")
 def cli() -> None:
     """PurpleChef — deploy, attack, detect, validate, report."""
     pass

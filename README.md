@@ -1,5 +1,7 @@
 # PurpleChef
 
+[![CI](https://github.com/scthornton/purplechef/actions/workflows/ci.yml/badge.svg)](https://github.com/scthornton/purplechef/actions/workflows/ci.yml)
+
 **Purple team recipe platform — deploy, attack, detect, validate, report.**
 
 ## What is this?
