@@ -1,0 +1,56 @@
+{
+  "recipe_name": "credential-access-suite",
+  "run_id": "run-2026-03-28",
+  "timestamp": "2026-03-28T14:30:00+00:00",
+  "evidence_chains": [
+    {
+      "technique": {"id": "T1003.001", "name": "LSASS Memory", "tactic": "credential-access"},
+      "emulation_id": "op-abc123",
+      "execution_start": "2026-03-28T14:00:00+00:00",
+      "execution_end": "2026-03-28T14:05:00+00:00",
+      "detection_window_start": "2026-03-28T14:00:00+00:00",
+      "detection_window_end": "2026-03-28T14:30:00+00:00",
+      "detections": [
+        {
+          "rule_name": "LSASS Access",
+          "source": "limacharlie",
+          "timestamp": "2026-03-28T14:03:22+00:00",
+          "alert_id": "det-7a8b9c",
+          "tags": ["t1003.001"],
+          "confidence": 0.95
+        }
+      ],
+      "status": "detected"
+    },
+    {
+      "technique": {"id": "T1059.001", "name": "PowerShell", "tactic": "execution"},
+      "emulation_id": "op-abc123",
+      "execution_start": "2026-03-28T14:00:00+00:00",
+      "execution_end": "2026-03-28T14:05:00+00:00",
+      "detection_window_start": "2026-03-28T14:00:00+00:00",
+      "detection_window_end": "2026-03-28T14:30:00+00:00",
+      "detections": [],
+      "status": "missed"
+    },
+    {
+      "technique": {"id": "T1053.005", "name": "Scheduled Task", "tactic": "execution"},
+      "emulation_id": "op-abc123",
+      "execution_start": "2026-03-28T14:00:00+00:00",
+      "execution_end": "2026-03-28T14:05:00+00:00",
+      "detection_window_start": "2026-03-28T14:00:00+00:00",
+      "detection_window_end": "2026-03-28T14:30:00+00:00",
+      "detections": [],
+      "status": "missed"
+    },
+    {
+      "technique": {"id": "T1566.001", "name": "Spearphishing Attachment", "tactic": "initial-access"},
+      "emulation_id": "op-abc123",
+      "execution_start": "2026-03-28T14:00:00+00:00",
+      "execution_end": "2026-03-28T14:05:00+00:00",
+      "detection_window_start": "2026-03-28T14:00:00+00:00",
+      "detection_window_end": "2026-03-28T14:30:00+00:00",
+      "detections": [],
+      "status": "missed"
+    }
+  ]
+}

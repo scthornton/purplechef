@@ -1,0 +1,74 @@
+{
+  "recipe_name": "credential-access-suite",
+  "run_id": "run-2026-04-01",
+  "timestamp": "2026-04-01T10:15:00+00:00",
+  "evidence_chains": [
+    {
+      "technique": {"id": "T1003.001", "name": "LSASS Memory", "tactic": "credential-access"},
+      "emulation_id": "op-def456",
+      "execution_start": "2026-04-01T10:00:00+00:00",
+      "execution_end": "2026-04-01T10:05:00+00:00",
+      "detection_window_start": "2026-04-01T10:00:00+00:00",
+      "detection_window_end": "2026-04-01T10:15:00+00:00",
+      "detections": [
+        {
+          "rule_name": "LSASS Access",
+          "source": "limacharlie",
+          "timestamp": "2026-04-01T10:02:44+00:00",
+          "alert_id": "det-x1y2z3",
+          "tags": ["t1003.001"],
+          "confidence": 0.95
+        }
+      ],
+      "status": "detected"
+    },
+    {
+      "technique": {"id": "T1059.001", "name": "PowerShell", "tactic": "execution"},
+      "emulation_id": "op-def456",
+      "execution_start": "2026-04-01T10:00:00+00:00",
+      "execution_end": "2026-04-01T10:05:00+00:00",
+      "detection_window_start": "2026-04-01T10:00:00+00:00",
+      "detection_window_end": "2026-04-01T10:15:00+00:00",
+      "detections": [
+        {
+          "rule_name": "Obfuscated PowerShell",
+          "source": "limacharlie",
+          "timestamp": "2026-04-01T10:03:11+00:00",
+          "alert_id": "det-ps001",
+          "tags": ["t1059.001"],
+          "confidence": 0.9
+        }
+      ],
+      "status": "detected"
+    },
+    {
+      "technique": {"id": "T1053.005", "name": "Scheduled Task", "tactic": "execution"},
+      "emulation_id": "op-def456",
+      "execution_start": "2026-04-01T10:00:00+00:00",
+      "execution_end": "2026-04-01T10:05:00+00:00",
+      "detection_window_start": "2026-04-01T10:00:00+00:00",
+      "detection_window_end": "2026-04-01T10:15:00+00:00",
+      "detections": [
+        {
+          "rule_name": "Scheduled Task Creation",
+          "source": "limacharlie",
+          "timestamp": "2026-04-01T10:04:02+00:00",
+          "alert_id": "det-st001",
+          "tags": ["t1053.005"],
+          "confidence": 0.85
+        }
+      ],
+      "status": "detected"
+    },
+    {
+      "technique": {"id": "T1566.001", "name": "Spearphishing Attachment", "tactic": "initial-access"},
+      "emulation_id": "op-def456",
+      "execution_start": "2026-04-01T10:00:00+00:00",
+      "execution_end": "2026-04-01T10:05:00+00:00",
+      "detection_window_start": "2026-04-01T10:00:00+00:00",
+      "detection_window_end": "2026-04-01T10:15:00+00:00",
+      "detections": [],
+      "status": "missed"
+    }
+  ]
+}
