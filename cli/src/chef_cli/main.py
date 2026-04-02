@@ -19,13 +19,11 @@ from rich.table import Table
 
 console = Console()
 
-BANNER = r"""[cyan]
-  ____              _       ____ _          __
- |  _ \ _   _ _ __ | |__   / ___| |__   ___/ _|
- | |_) | | | | '_ \| '_ \ | |   | '_ \ / _ \ |_
- |  __/| |_| | |  | | | | | |___| | | |  __/  _|
- |_|    \__,_|_|  |_|_| |_|\____|_| |_|\___|_|
-[/cyan][dim]  Purple Team Recipe Platform[/dim]
+BANNER = """
+[bold cyan]  ╔═══════════════════════════════════╗
+  ║         P U R P L E C H E F       ║
+  ╚═══════════════════════════════════╝[/bold cyan]
+[dim]  Purple Team Recipe Platform  v0.9.0[/dim]
 """
 
 
@@ -90,7 +88,7 @@ async def _run_recipe(path: Path, *, dry_run: bool, output_dir: Path | None) -> 
             audit_logger=audit,
         ) as lc,
     ):
-        resolver = MitreResolver(caldera_client=caldera)
+        resolver = MitreResolver(caldera_client=caldera, dry_run=effective_dry_run)
         orchestrator = RecipeOrchestrator(
             caldera=caldera, limacharlie=lc, resolver=resolver, audit=audit
         )
