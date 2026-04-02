@@ -104,10 +104,14 @@ resource "aws_instance" "target" {
 
   user_data = <<-EOF
     <powershell>
-    # Enable WinRM
+    # Enable WinRM over HTTPS (preferred) with self-signed cert for lab use.
+    # WARNING: Basic+Unencrypted is insecure. Production MUST use HTTPS+Kerberos.
     Enable-PSRemoting -Force
-    Set-Item WSMan:\localhost\Service\AllowUnencrypted -Value $true
-    Set-Item WSMan:\localhost\Service\Auth\Basic -Value $true
+    $cert = New-SelfSignedCertificate -DnsName $env:COMPUTERNAME -CertStoreLocation Cert:\LocalMachine\My
+    New-Item -Path WSMan:\localhost\Listener -Transport HTTPS -Address * -CertificateThumbPrint $cert.Thumbprint -Force
+    Set-Item WSMan:\localhost\Service\AllowUnencrypted -Value $false
+    Set-Item WSMan:\localhost\Service\Auth\Basic -Value $false
+    Set-Item WSMan:\localhost\Service\Auth\Negotiate -Value $true
 
     # Install Atomic Red Team
     IEX (IWR 'https://raw.githubusercontent.com/redcanaryco/invoke-atomicredteam/master/install-atomicredteam.ps1' -UseBasicParsing)

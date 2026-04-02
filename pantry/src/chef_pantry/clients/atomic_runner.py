@@ -55,27 +55,44 @@ class AtomicRunner:
         return " ".join(parts)
 
     def _build_remote_command(self, ps_command: str) -> list[str]:
-        """Build the full command to execute PowerShell remotely."""
-        # Use pwsh for cross-platform, fall back to powershell.exe on Windows
+        """Build the full command to execute PowerShell remotely.
+
+        Credentials are passed via STDIN using -EncodedCommand to avoid
+        exposing plaintext passwords in process arguments, audit telemetry,
+        or EDR logs.
+        """
+        import base64
+
         inner = (
             f"Import-Module C:\\AtomicRedTeam\\invoke-atomicredteam\\"
             f"Invoke-AtomicRedTeam.psd1 -Force; {ps_command}"
         )
-        cmd = [
+        script = f"Invoke-Command -ComputerName {self._host} -ScriptBlock {{ {inner} }}"
+        if self._username and self._password:
+            # Build credential object and pass via EncodedCommand so the
+            # password never appears as a process argument.
+            script = (
+                f"$secpw = Read-Host -AsSecureString; "
+                f"$cred = New-Object System.Management.Automation.PSCredential("
+                f"'{self._username}', $secpw); "
+                f"{script} -Credential $cred"
+            )
+
+        # Encode the script as UTF-16LE base64 for -EncodedCommand
+        encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+        return [
             "powershell",
             "-NoProfile",
             "-NonInteractive",
-            "-Command",
-            f"Invoke-Command -ComputerName {self._host} -ScriptBlock {{ {inner} }}",
+            "-EncodedCommand",
+            encoded,
         ]
-        if self._username and self._password:
-            cred_block = (
-                f"$cred = New-Object System.Management.Automation.PSCredential("
-                f"'{self._username}', (ConvertTo-SecureString '{self._password}' "
-                f"-AsPlainText -Force)); "
-            )
-            cmd[4] = cred_block + cmd[4] + " -Credential $cred"
-        return cmd
+
+    def _get_password_stdin(self) -> bytes | None:
+        """Return password as bytes for piping to STDIN, or None."""
+        if self._password:
+            return (self._password + "\n").encode("utf-8")
+        return None
 
     async def execute_technique(
         self,
@@ -97,10 +114,14 @@ class AtomicRunner:
         try:
             proc = await asyncio.create_subprocess_exec(
                 *full_cmd,
+                stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            pw_stdin = self._get_password_stdin()
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=pw_stdin), timeout=timeout
+            )
 
             success = proc.returncode == 0
             status = "completed" if success else "failed"

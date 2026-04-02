@@ -38,7 +38,8 @@ class ValidationResult(BaseModel):
 
 _VALID_LEVELS = {"informational", "low", "medium", "high", "critical"}
 _VALID_STATUSES = {"stable", "test", "experimental", "deprecated", "unsupported"}
-_ATTACK_TAG_RE = re.compile(r"^attack\.[a-z0-9_]+$")
+# Accept both dotted (attack.t1003.001) and underscore (attack.t1003_001) ATT&CK tags
+_ATTACK_TAG_RE = re.compile(r"^attack\.[a-z0-9_.]+$")
 _REQUIRED_TOP_LEVEL = {"title", "logsource", "detection"}
 
 
