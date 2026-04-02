@@ -40,3 +40,4 @@ reports/
 *.pem
 *.key
 *.secret
+chef_audit.log
