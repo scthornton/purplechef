@@ -93,6 +93,15 @@ def _build_payload(
 # ---------------------------------------------------------------------------
 
 
+def _redact_url(url: str) -> str:
+    """Redact webhook URL to avoid leaking secrets in logs."""
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    host = parsed.hostname or "unknown"
+    return f"{parsed.scheme}://{host}/***"
+
+
 async def send_webhook(
     config: WebhookConfig,
     result: CoverageResult,
@@ -104,6 +113,7 @@ async def send_webhook(
     Returns ``True`` on a 2xx response, ``False`` otherwise.
     """
     payload = _build_payload(config, result, report_url=report_url)
+    redacted = _redact_url(config.url)
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -114,17 +124,17 @@ async def send_webhook(
                 headers=config.headers,
             )
         if 200 <= response.status_code < 300:
-            logger.info("Webhook delivered to %s (status %d)", config.url, response.status_code)
+            logger.info("Webhook delivered to %s (status %d)", redacted, response.status_code)
             return True
         logger.warning(
             "Webhook to %s returned non-2xx status %d: %s",
-            config.url,
+            redacted,
             response.status_code,
             response.text[:500],
         )
         return False
     except httpx.HTTPError as exc:
-        logger.error("Webhook delivery failed for %s: %s", config.url, exc)
+        logger.error("Webhook delivery failed for %s: %s", redacted, exc)
         return False
 
 

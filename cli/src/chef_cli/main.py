@@ -34,6 +34,34 @@ def cli() -> None:
     pass
 
 
+@cli.command()
+@click.option(
+    "--techniques",
+    "-t",
+    default="T1003.001,T1059.001,T1053.005,T1566.001",
+    help="Comma-separated technique IDs",
+)
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=None)
+def demo(techniques: str, output: Path | None) -> None:
+    """Run a simulated purple team exercise (no backend required)."""
+    console.print(BANNER)
+    asyncio.run(_run_demo(techniques.split(","), output))
+
+
+async def _run_demo(technique_ids: list[str], output_dir: Path | None) -> None:
+    from chef_detection.coverage_reporter import save_report
+    from chef_recipes.demo_runner import run_demo
+
+    result = await run_demo([t.strip() for t in technique_ids])
+
+    out = output_dir or Path("reports")
+    out.mkdir(parents=True, exist_ok=True)
+    saved = save_report(result, out, ["json", "html", "navigator"])
+    console.print()
+    for p in saved:
+        console.print(f"[green]📄 Report saved:[/] {p}")
+
+
 @cli.group()
 def recipe() -> None:
     """Manage and execute purple team recipes."""

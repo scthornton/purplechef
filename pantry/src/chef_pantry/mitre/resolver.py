@@ -40,8 +40,11 @@ _KNOWN_TECHNIQUES: dict[str, tuple[str, str]] = {
 class MitreResolver:
     """Resolves MITRE technique IDs to executable attack specifications."""
 
-    def __init__(self, caldera_client: CalderaClient | None = None) -> None:
+    def __init__(
+        self, caldera_client: CalderaClient | None = None, *, dry_run: bool = False
+    ) -> None:
         self._caldera = caldera_client
+        self._dry_run = dry_run
         self._ability_cache: dict[str, list[dict]] | None = None
 
     @staticmethod
@@ -63,7 +66,7 @@ class MitreResolver:
     async def _ensure_ability_cache(self) -> dict[str, list[dict]]:
         if self._ability_cache is not None:
             return self._ability_cache
-        if self._caldera is None:
+        if self._caldera is None or self._dry_run:
             self._ability_cache = {}
             return self._ability_cache
         try:

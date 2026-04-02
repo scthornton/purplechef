@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from chef_recipes.navigator_import import generate_recipe_stubs

@@ -315,14 +315,6 @@ class RecipeOrchestrator:
         self._log("reported", detail={"coverage": pct, "detected": detected, "total": total})
         return result
 
-    def _empty_result(self, recipe: Recipe) -> CoverageResult:
-        return CoverageResult(
-            recipe_name=recipe.name,
-            run_id=self._run_id,
-            timestamp=datetime.now(UTC),
-            evidence_chains=[],
-        )
-
     def _log(self, action: str, detail: Any = None, success: bool = True) -> None:
         if self._audit:
             self._audit.log(
