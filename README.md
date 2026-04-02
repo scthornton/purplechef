@@ -4,6 +4,10 @@
 
 **Purple team recipe platform — deploy, attack, detect, validate, report.**
 
+![PurpleChef Demo — 4 techniques](docs/images/demo-4-techniques.png)
+
+![PurpleChef Demo — 7 techniques with evidence chain table](docs/images/demo-7-techniques.png)
+
 ## What is this?
 
 PurpleChef is a structured automation framework for purple team exercises. You write declarative YAML "recipes" that describe an adversary technique, point Chef at your lab environment, and it handles the full lifecycle: spinning up infrastructure, executing the attack via Caldera, validating whether your detections fired in LimaCharlie, and producing an evidence-backed coverage report mapped to MITRE ATT&CK. If a technique was missed, Chef drafts a Sigma rule so you leave every exercise with better coverage than you started.
