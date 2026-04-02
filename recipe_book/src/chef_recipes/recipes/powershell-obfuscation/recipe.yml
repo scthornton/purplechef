@@ -1,0 +1,62 @@
+name: powershell-obfuscation
+version: "1.0"
+description: >
+  Emulate obfuscated PowerShell execution (T1059.001). Validates whether
+  endpoint detection fires on command lines containing backtick, percent,
+  and caret obfuscation characters commonly used to evade static analysis.
+
+metadata:
+  author: scott-thornton
+  mitre_techniques:
+    - T1059.001
+  mitre_tactics:
+    - execution
+  difficulty: beginner
+  estimated_time: 10m
+  tags:
+    - windows
+    - execution
+    - powershell
+    - obfuscation
+    - purple-team
+    - purplechef
+
+mise_en_place:
+  terraform_module: windows-target
+  ansible_roles:
+    - limacharlie-sensor
+    - atomic-install
+  prerequisites:
+    caldera_server_running: true
+    limacharlie_org_configured: true
+
+attack:
+  method: caldera
+  caldera:
+    adversary_name: chef-powershell-obfuscation
+    abilities:
+      - technique_id: T1059.001
+        ability_id: auto
+        description: Execute obfuscated PowerShell commands with backtick and caret characters
+    group: chef-targets
+    timeout: 300
+
+validate:
+  detection_source: limacharlie
+  wait_seconds: 90
+  expected_rules:
+    - name: Obfuscated PowerShell
+      tags:
+        - t1059
+  sigma_rules:
+    - path: sigma-rules/obfuscated-powershell.yml
+
+report:
+  format:
+    - json
+    - html
+  evidence_required: true
+
+advise:
+  generate_sigma: true
+  generate_kql: false

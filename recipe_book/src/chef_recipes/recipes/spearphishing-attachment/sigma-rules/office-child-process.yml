@@ -1,0 +1,43 @@
+title: Suspicious Office Application Child Process
+id: chef-t1566-001-office-child-process
+status: experimental
+level: high
+description: >
+  Detects Microsoft Office applications (Word, Excel, PowerPoint, Outlook,
+  Access) spawning suspicious child processes such as cmd.exe, powershell.exe,
+  wscript.exe, cscript.exe, or mshta.exe. This behavior is a strong indicator
+  of spearphishing payload execution via malicious macros or exploits.
+  Maps to MITRE ATT&CK T1566.001 (Phishing: Spearphishing Attachment).
+author: PurpleChef
+date: 2026/03/30
+references:
+  - https://attack.mitre.org/techniques/T1566/001/
+tags:
+  - attack.initial_access
+  - attack.t1566.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_parent:
+    EventID: 1
+    ParentImage|endswith:
+      - '\winword.exe'
+      - '\excel.exe'
+      - '\powerpnt.exe'
+      - '\outlook.exe'
+      - '\msaccess.exe'
+  selection_child:
+    Image|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+      - '\regsvr32.exe'
+      - '\rundll32.exe'
+  condition: selection_parent and selection_child
+falsepositives:
+  - Office add-ins that legitimately spawn processes
+  - Macros in trusted internal documents

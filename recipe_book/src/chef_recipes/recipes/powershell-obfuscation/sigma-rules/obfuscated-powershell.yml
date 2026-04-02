@@ -1,0 +1,46 @@
+title: Obfuscated PowerShell Command Line Execution
+id: chef-t1059-001-obfuscated-powershell
+status: experimental
+level: high
+description: >
+  Detects PowerShell execution with command-line obfuscation indicators
+  including backtick, percent, and caret characters. These techniques are
+  commonly used to evade static detection rules and signature-based tools.
+  Maps to MITRE ATT&CK T1059.001 (Command and Scripting Interpreter: PowerShell).
+author: PurpleChef
+date: 2026/03/30
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+  - https://www.danielbohannon.com/blog-1/2017/3/12/powershell-execution-argument-obfuscation
+tags:
+  - attack.execution
+  - attack.defense_evasion
+  - attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_process:
+    EventID: 1
+    Image|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+  obfuscation_backtick:
+    CommandLine|contains: '`'
+  obfuscation_percent:
+    CommandLine|contains: '%'
+  obfuscation_caret:
+    CommandLine|contains: '^'
+  obfuscation_encoding:
+    CommandLine|contains:
+      - '-enc'
+      - '-EncodedCommand'
+      - 'FromBase64String'
+  condition: >
+    selection_process and
+    (obfuscation_backtick and obfuscation_caret) or
+    (obfuscation_backtick and obfuscation_percent and obfuscation_caret) or
+    (obfuscation_encoding)
+falsepositives:
+  - Legitimate admin scripts with encoded parameters
+  - Software installers using PowerShell with encoded commands

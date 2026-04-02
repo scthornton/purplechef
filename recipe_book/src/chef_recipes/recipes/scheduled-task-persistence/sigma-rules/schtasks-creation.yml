@@ -1,0 +1,46 @@
+title: Scheduled Task Creation via schtasks.exe with Suspicious Path
+id: chef-t1053-005-schtasks-creation
+status: experimental
+level: medium
+description: >
+  Detects creation of scheduled tasks via schtasks.exe /create where the
+  task action points to suspicious file system paths such as Temp, AppData,
+  Public, or ProgramData directories. This is a common persistence technique
+  used by malware and red team tools.
+  Maps to MITRE ATT&CK T1053.005 (Scheduled Task/Job: Scheduled Task).
+author: PurpleChef
+date: 2026/03/30
+references:
+  - https://attack.mitre.org/techniques/T1053/005/
+tags:
+  - attack.persistence
+  - attack.execution
+  - attack.t1053.005
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    EventID: 1
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains: '/create'
+  suspicious_paths:
+    CommandLine|contains:
+      - '\Temp\'
+      - '\AppData\'
+      - '\Public\'
+      - '\ProgramData\'
+      - '%TEMP%'
+      - '%APPDATA%'
+      - '\Downloads\'
+  filter_system:
+    User|contains:
+      - 'SYSTEM'
+      - 'LOCAL SERVICE'
+    ParentImage|endswith:
+      - '\svchost.exe'
+      - '\msiexec.exe'
+  condition: selection and suspicious_paths and not filter_system
+falsepositives:
+  - Legitimate administrative task scheduling
+  - Software installation creating scheduled tasks in user directories
