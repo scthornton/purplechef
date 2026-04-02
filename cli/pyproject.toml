@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "chef-pantry",
     "chef-recipe-book",
+    "chef-detection-kitchen",
     "click>=8.1",
     "rich>=13.0",
 ]
@@ -13,6 +14,7 @@ dependencies = [
 [tool.uv.sources]
 chef-pantry = { workspace = true }
 chef-recipe-book = { workspace = true }
+chef-detection-kitchen = { workspace = true }
 
 [project.scripts]
 chef = "chef_cli.main:cli"

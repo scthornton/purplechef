@@ -46,9 +46,7 @@ class TestListAbilities:
             {"ability_id": "a1", "technique_id": "T1003.001", "name": "Dump LSASS"},
             {"ability_id": "a2", "technique_id": "T1018", "name": "Net Discovery"},
         ]
-        respx.get(f"{BASE_URL}/api/v2/abilities").mock(
-            return_value=Response(200, json=abilities)
-        )
+        respx.get(f"{BASE_URL}/api/v2/abilities").mock(return_value=Response(200, json=abilities))
         result = await dry_client.list_abilities()
         assert isinstance(result, list)
         assert len(result) == 2
@@ -56,9 +54,7 @@ class TestListAbilities:
 
     @respx.mock
     async def test_empty_list(self, dry_client: CalderaClient) -> None:
-        respx.get(f"{BASE_URL}/api/v2/abilities").mock(
-            return_value=Response(200, json=[])
-        )
+        respx.get(f"{BASE_URL}/api/v2/abilities").mock(return_value=Response(200, json=[]))
         result = await dry_client.list_abilities()
         assert result == []
 
@@ -76,9 +72,7 @@ class TestFindAbilityByTechnique:
             {"ability_id": "a2", "technique_id": "T1018", "name": "Net Discovery"},
             {"ability_id": "a3", "technique_id": "T1003.001", "name": "ProcDump LSASS"},
         ]
-        respx.get(f"{BASE_URL}/api/v2/abilities").mock(
-            return_value=Response(200, json=abilities)
-        )
+        respx.get(f"{BASE_URL}/api/v2/abilities").mock(return_value=Response(200, json=abilities))
         result = await dry_client.find_ability_by_technique("T1003.001")
         assert len(result) == 2
         assert all(a["technique_id"] == "T1003.001" for a in result)
@@ -88,9 +82,7 @@ class TestFindAbilityByTechnique:
         abilities = [
             {"ability_id": "a1", "technique_id": "T1018", "name": "Net Discovery"},
         ]
-        respx.get(f"{BASE_URL}/api/v2/abilities").mock(
-            return_value=Response(200, json=abilities)
-        )
+        respx.get(f"{BASE_URL}/api/v2/abilities").mock(return_value=Response(200, json=abilities))
         result = await dry_client.find_ability_by_technique("T9999")
         assert result == []
 
@@ -115,9 +107,7 @@ class TestCreateAdversaryDryRun:
     @respx.mock
     async def test_live_mode_sends_request(self, live_client: CalderaClient) -> None:
         expected = {"adversary_id": "adv-1", "name": "test-adversary"}
-        respx.post(f"{BASE_URL}/api/v2/adversaries").mock(
-            return_value=Response(200, json=expected)
-        )
+        respx.post(f"{BASE_URL}/api/v2/adversaries").mock(return_value=Response(200, json=expected))
         result = await live_client.create_adversary(
             name="test-adversary",
             description="test",
@@ -132,9 +122,7 @@ class TestCreateAdversaryDryRun:
 
 
 class TestCreateOperation:
-    async def test_disallowed_group_raises_caldera_error(
-        self, dry_client: CalderaClient
-    ) -> None:
+    async def test_disallowed_group_raises_caldera_error(self, dry_client: CalderaClient) -> None:
         with pytest.raises(CalderaError) as exc_info:
             await dry_client.create_operation(
                 name="op-1",
@@ -155,13 +143,9 @@ class TestCreateOperation:
             )
 
     @respx.mock
-    async def test_live_allowed_group_sends_request(
-        self, live_client: CalderaClient
-    ) -> None:
+    async def test_live_allowed_group_sends_request(self, live_client: CalderaClient) -> None:
         expected = {"id": "op-1", "state": "running"}
-        respx.post(f"{BASE_URL}/api/v2/operations").mock(
-            return_value=Response(200, json=expected)
-        )
+        respx.post(f"{BASE_URL}/api/v2/operations").mock(return_value=Response(200, json=expected))
         result = await live_client.create_operation(
             name="op-1",
             adversary_id="adv-1",
@@ -177,20 +161,14 @@ class TestCreateOperation:
 
 class TestErrorHandling:
     @respx.mock
-    async def test_4xx_response_raises_caldera_error(
-        self, dry_client: CalderaClient
-    ) -> None:
-        respx.get(f"{BASE_URL}/api/v2/abilities").mock(
-            return_value=Response(403, text="Forbidden")
-        )
+    async def test_4xx_response_raises_caldera_error(self, dry_client: CalderaClient) -> None:
+        respx.get(f"{BASE_URL}/api/v2/abilities").mock(return_value=Response(403, text="Forbidden"))
         with pytest.raises(CalderaError) as exc_info:
             await dry_client.list_abilities()
         assert exc_info.value.status_code == 403
 
     @respx.mock
-    async def test_404_response_raises_caldera_error(
-        self, dry_client: CalderaClient
-    ) -> None:
+    async def test_404_response_raises_caldera_error(self, dry_client: CalderaClient) -> None:
         respx.get(f"{BASE_URL}/api/v2/abilities/nonexistent").mock(
             return_value=Response(404, text="Not Found")
         )
@@ -199,9 +177,7 @@ class TestErrorHandling:
         assert exc_info.value.status_code == 404
 
     @respx.mock
-    async def test_500_response_raises_caldera_error(
-        self, dry_client: CalderaClient
-    ) -> None:
+    async def test_500_response_raises_caldera_error(self, dry_client: CalderaClient) -> None:
         respx.get(f"{BASE_URL}/api/v2/abilities").mock(
             return_value=Response(500, text="Internal Server Error")
         )
@@ -231,11 +207,7 @@ class TestErrorHandling:
 class TestContextManager:
     @respx.mock
     async def test_async_context_manager(self) -> None:
-        respx.get(f"{BASE_URL}/api/v2/abilities").mock(
-            return_value=Response(200, json=[])
-        )
-        async with CalderaClient(
-            base_url=BASE_URL, api_key=API_KEY
-        ) as client:
+        respx.get(f"{BASE_URL}/api/v2/abilities").mock(return_value=Response(200, json=[]))
+        async with CalderaClient(base_url=BASE_URL, api_key=API_KEY) as client:
             result = await client.list_abilities()
             assert result == []

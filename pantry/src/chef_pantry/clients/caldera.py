@@ -102,9 +102,7 @@ class CalderaClient:
     ) -> dict[str, Any]:
         self._audit_log("create_adversary", target=name, abilities=ability_ids)
         if self._dry_run:
-            raise DryRunBlockedError(
-                action=f"create_adversary: Would create adversary '{name}'"
-            )
+            raise DryRunBlockedError(action=f"create_adversary: Would create adversary '{name}'")
         payload = {
             "name": name,
             "description": description,
@@ -123,9 +121,7 @@ class CalderaClient:
         planner: str = "atomic",
     ) -> dict[str, Any]:
         self._check_group(group)
-        self._audit_log(
-            "create_operation", target=name, adversary=adversary_id, group=group
-        )
+        self._audit_log("create_operation", target=name, adversary=adversary_id, group=group)
         if self._dry_run:
             raise DryRunBlockedError(
                 action=f"create_operation: Would run adversary '{adversary_id}' against group '{group}'"

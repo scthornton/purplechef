@@ -64,12 +64,14 @@ class RecipeOrchestrator:
 
     async def run(self, recipe: Recipe) -> CoverageResult:
         """Execute the full recipe lifecycle. Returns a CoverageResult."""
-        console.print(Panel(
-            f"[bold cyan]🍳 Cooking:[/] {recipe.name} v{recipe.version}\n"
-            f"[dim]Run ID: {self._run_id}[/]",
-            title="PurpleChef",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                f"[bold cyan]🍳 Cooking:[/] {recipe.name} v{recipe.version}\n"
+                f"[dim]Run ID: {self._run_id}[/]",
+                title="PurpleChef",
+                border_style="cyan",
+            )
+        )
 
         try:
             resolved = await self._phase_resolve(recipe)
@@ -147,7 +149,9 @@ class RecipeOrchestrator:
 
         # Create and run operation
         op_name = f"chef-op-{self._run_id}"
-        console.print(f"  Starting operation: [cyan]{op_name}[/] against group [cyan]{spec.group}[/]")
+        console.print(
+            f"  Starting operation: [cyan]{op_name}[/] against group [cyan]{spec.group}[/]"
+        )
         operation = await self._caldera.create_operation(
             name=op_name, adversary_id=adversary_id, group=spec.group
         )
@@ -158,9 +162,7 @@ class RecipeOrchestrator:
             SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
         ) as progress:
             task = progress.add_task("Waiting for operation to complete...", total=None)
-            result = await self._caldera.poll_operation(
-                operation_id, timeout=spec.timeout
-            )
+            result = await self._caldera.poll_operation(operation_id, timeout=spec.timeout)
             progress.update(task, description="[green]Operation complete")
 
         chain = result.get("chain", [])
@@ -183,7 +185,9 @@ class RecipeOrchestrator:
             task = progress.add_task(f"Waiting {wait}s...", total=wait)
             for i in range(wait):
                 await asyncio.sleep(1)
-                progress.update(task, advance=1, description=f"Waiting... {wait - i - 1}s remaining")
+                progress.update(
+                    task, advance=1, description=f"Waiting... {wait - i - 1}s remaining"
+                )
         console.print("  [green]✓[/] Wait complete")
 
     async def _phase_validate(
@@ -195,9 +199,7 @@ class RecipeOrchestrator:
         now = datetime.now(UTC)
         # Look back over the execution + wait window
         lookback_seconds = recipe.validate_spec.wait_seconds + 600
-        window_start = datetime.fromtimestamp(
-            now.timestamp() - lookback_seconds, tz=UTC
-        )
+        window_start = datetime.fromtimestamp(now.timestamp() - lookback_seconds, tz=UTC)
 
         chains: list[EvidenceChain] = []
         for tid in recipe.metadata.mitre_techniques:
