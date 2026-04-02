@@ -66,7 +66,12 @@ class MitreResolver:
         if self._caldera is None:
             self._ability_cache = {}
             return self._ability_cache
-        abilities = await self._caldera.list_abilities()
+        try:
+            abilities = await self._caldera.list_abilities()
+        except Exception:
+            # Caldera unreachable — fall back to empty cache (Atomic/manual resolution)
+            self._ability_cache = {}
+            return self._ability_cache
         cache: dict[str, list[dict]] = {}
         for ability in abilities:
             tid = ability.get("technique_id", "")

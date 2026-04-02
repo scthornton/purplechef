@@ -107,11 +107,7 @@ _RECIPE_STUB_TEMPLATE: dict[str, Any] = {
         "prerequisites": {},
     },
     "attack": {
-        "method": "atomic",
-        "atomic": {
-            "technique_id": "",
-            "test_numbers": [1],
-        },
+        "method": "manual",
     },
     "validate": {
         "detection_source": "manual",
@@ -130,19 +126,21 @@ _RECIPE_STUB_TEMPLATE: dict[str, Any] = {
 }
 
 
-def _build_recipe_stub(technique_id: str) -> dict[str, Any]:
+def _build_recipe_stub(technique_id: str, *, sigma_rel_path: str | None = None) -> dict[str, Any]:
     """Build a single recipe stub dict for a technique ID."""
     technique = MitreResolver.build_technique(technique_id)
 
     stub = json.loads(json.dumps(_RECIPE_STUB_TEMPLATE))  # deep copy
-    stub["name"] = f"coverage-gap-{technique_id}"
+    safe = technique_id.lower().replace(".", "-")
+    stub["name"] = f"coverage-gap-{safe}"
     stub["description"] = (
         f"Auto-generated recipe stub to cover {technique.name} ({technique_id}). "
         "Fill in attack and detection details before running."
     )
     stub["metadata"]["mitre_techniques"] = [technique_id]
     stub["metadata"]["mitre_tactics"] = [technique.tactic]
-    stub["attack"]["atomic"]["technique_id"] = technique_id
+    if sigma_rel_path:
+        stub["validate"]["sigma_rules"] = [{"path": sigma_rel_path}]
     return stub
 
 
@@ -158,30 +156,34 @@ def generate_recipe_stubs(
     created: list[Path] = []
 
     for tid in technique_ids:
-        safe_name = tid.lower().replace(".", "_")
+        safe_name = tid.lower().replace(".", "-")
+        recipe_dir = output_dir / f"coverage-gap-{safe_name}"
+        recipe_dir.mkdir(parents=True, exist_ok=True)
 
-        # --- recipe stub ---
-        recipe_path = output_dir / f"{safe_name}_recipe.yml"
-        stub = _build_recipe_stub(tid)
+        # --- sigma rule first (if template exists) so we can reference it ---
+        sigma_rel_path: str | None = None
+        if has_template(tid):
+            template_fn = get_template(tid)
+            if template_fn is not None:
+                sigma_dict = template_fn(tid)
+                sigma_dir = recipe_dir / "sigma-rules"
+                sigma_dir.mkdir(exist_ok=True)
+                sigma_filename = f"{safe_name}.yml"
+                sigma_path = sigma_dir / sigma_filename
+                sigma_path.write_text(render_sigma_yaml(sigma_dict), encoding="utf-8")
+                created.append(sigma_path)
+                sigma_rel_path = f"sigma-rules/{sigma_filename}"
+                logger.info("Created Sigma rule: %s", sigma_path)
+
+        # --- recipe.yml (discoverable by discover_recipes) ---
+        recipe_path = recipe_dir / "recipe.yml"
+        stub = _build_recipe_stub(tid, sigma_rel_path=sigma_rel_path)
         recipe_path.write_text(
             yaml.dump(stub, default_flow_style=False, sort_keys=False, allow_unicode=True),
             encoding="utf-8",
         )
         created.append(recipe_path)
         logger.info("Created recipe stub: %s", recipe_path)
-
-        # --- sigma rule (if template exists) ---
-        if has_template(tid):
-            template_fn = get_template(tid)
-            if template_fn is not None:
-                sigma_dict = template_fn(tid)
-                sigma_path = output_dir / f"{safe_name}_sigma.yml"
-                sigma_path.write_text(
-                    render_sigma_yaml(sigma_dict),
-                    encoding="utf-8",
-                )
-                created.append(sigma_path)
-                logger.info("Created Sigma rule: %s", sigma_path)
 
     return created
 

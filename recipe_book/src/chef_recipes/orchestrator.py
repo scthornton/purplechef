@@ -92,10 +92,15 @@ class RecipeOrchestrator:
             console.print(f"\n[yellow]⏸ Dry-run blocked:[/] {exc}")
             self._log("dry_run_blocked", detail=str(exc))
             self._phase = Phase.DONE
-            return self._empty_result(recipe)
+            # Return explicit dry-run chains instead of empty result
+            return self._phase_report(
+                recipe,
+                self._build_not_executed_chains(recipe, reason="Blocked by dry-run mode"),
+            )
         except Exception as exc:
+            failed_phase = self._phase.value  # capture before overwriting
             self._phase = Phase.FAILED
-            console.print(f"\n[red]✗ Failed in {self._phase.value}:[/] {exc}")
+            console.print(f"\n[red]✗ Failed in {failed_phase}:[/] {exc}")
             self._log("recipe_failed", detail=str(exc), success=False)
             raise
 
@@ -264,7 +269,9 @@ class RecipeOrchestrator:
         self._log("validated", detail={"chains": len(chains)})
         return chains
 
-    def _build_not_executed_chains(self, recipe: Recipe) -> list[EvidenceChain]:
+    def _build_not_executed_chains(
+        self, recipe: Recipe, *, reason: str = "Attack was not executed"
+    ) -> list[EvidenceChain]:
         """Build evidence chains marked as 'error' when no attack executed."""
         now = datetime.now(UTC)
         chains = []
@@ -280,7 +287,7 @@ class RecipeOrchestrator:
                     detection_window_end=now,
                     detections=[],
                     status="error",
-                    notes="Attack was not executed (skipped or manual method)",
+                    notes=reason,
                 )
             )
         return chains
