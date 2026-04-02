@@ -19,6 +19,7 @@ def _esc(value: object) -> str:
     """Escape a value for safe inclusion in HTML output."""
     return html.escape(str(value))
 
+
 # ---------------------------------------------------------------------------
 # Colour constants
 # ---------------------------------------------------------------------------
@@ -119,7 +120,9 @@ def generate_html_report(result: CoverageResult) -> str:
         border = _GREEN if detected else _RED
         icon = _status_icon(chain)
         icon_color = _GREEN if detected else _RED
-        alert_ids = ", ".join(_esc(d.alert_id) for d in chain.detections) if chain.detections else "---"
+        alert_ids = (
+            ", ".join(_esc(d.alert_id) for d in chain.detections) if chain.detections else "---"
+        )
         cards.append(
             f'<div class="card" style="border-left:4px solid {border};">'
             f'  <div class="card-id">{_esc(chain.technique.id)}</div>'
@@ -136,7 +139,9 @@ def generate_html_report(result: CoverageResult) -> str:
         matched_rules = (
             ", ".join(_esc(d.rule_name) for d in chain.detections) if chain.detections else "---"
         )
-        alert_ids = ", ".join(_esc(d.alert_id) for d in chain.detections) if chain.detections else "---"
+        alert_ids = (
+            ", ".join(_esc(d.alert_id) for d in chain.detections) if chain.detections else "---"
+        )
         status_color = _GREEN if chain.is_detected else _RED
         rows.append(
             f"<tr>"

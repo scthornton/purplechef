@@ -253,6 +253,7 @@ class RecipeOrchestrator:
             for mode, value in expected_patterns:
                 if mode == "regex":
                     import re
+
                     if re.search(value, rule_name, re.IGNORECASE):
                         return True
                 elif mode == "substring":
