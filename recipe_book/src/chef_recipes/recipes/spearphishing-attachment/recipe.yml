@@ -1,0 +1,63 @@
+name: spearphishing-attachment
+version: "1.0"
+description: >
+  Emulate spearphishing attachment execution (T1566.001). Validates whether
+  endpoint detection fires when Microsoft Office applications spawn suspicious
+  child processes such as cmd.exe, powershell.exe, or script interpreters,
+  indicating potential macro or exploit-based payload delivery.
+
+metadata:
+  author: scott-thornton
+  mitre_techniques:
+    - T1566.001
+  mitre_tactics:
+    - initial-access
+  difficulty: intermediate
+  estimated_time: 15m
+  tags:
+    - windows
+    - initial-access
+    - spearphishing
+    - office
+    - purple-team
+    - purplechef
+
+mise_en_place:
+  terraform_module: windows-target
+  ansible_roles:
+    - limacharlie-sensor
+    - atomic-install
+  prerequisites:
+    caldera_server_running: true
+    limacharlie_org_configured: true
+
+attack:
+  method: caldera
+  caldera:
+    adversary_name: chef-spearphishing-attachment
+    abilities:
+      - technique_id: T1566.001
+        ability_id: auto
+        description: Simulate Office application spawning suspicious child processes
+    group: chef-targets
+    timeout: 300
+
+validate:
+  detection_source: limacharlie
+  wait_seconds: 90
+  expected_rules:
+    - name: Suspicious Office Child Process
+      tags:
+        - t1566
+  sigma_rules:
+    - path: sigma-rules/office-child-process.yml
+
+report:
+  format:
+    - json
+    - html
+  evidence_required: true
+
+advise:
+  generate_sigma: true
+  generate_kql: false

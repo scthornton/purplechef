@@ -387,6 +387,332 @@ def detect_report(results_dir: Path, fmt: tuple[str, ...]) -> None:
         sys.exit(1)
 
 
+@detect.command("convert")
+@click.argument("path", type=click.Path(exists=True, path_type=Path))
+@click.option("--to", "target", type=click.Choice(["kql", "splunk"]), required=True)
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=None)
+def detect_convert(path: Path, target: str, output: Path | None) -> None:
+    """Convert a Sigma rule to KQL or Splunk SPL."""
+    import yaml as yaml_mod
+    from chef_detection.sigma_converter import convert_to_kql, convert_to_splunk
+
+    rule = yaml_mod.safe_load(path.read_text(encoding="utf-8"))
+    console.print(f"\n[bold]Converting[/] {path.name} → [cyan]{target.upper()}[/]\n")
+
+    result = convert_to_kql(rule) if target == "kql" else convert_to_splunk(rule)
+
+    for note in result.notes:
+        console.print(f"  [yellow]⚠[/] {note}")
+
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(result.query, encoding="utf-8")
+        console.print(f"\n[green]📄 Saved:[/] {output}")
+    else:
+        console.print(f"\n[bold]{target.upper()} query:[/]")
+        console.print(f"[dim]{'─' * 60}[/]")
+        console.print(result.query)
+        console.print(f"[dim]{'─' * 60}[/]")
+
+
+# --- Recipe: init, diff, report-only ---
+
+
+@recipe.command("init")
+@click.argument("technique_id")
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=None)
+@click.option("--method", type=click.Choice(["caldera", "atomic", "manual"]), default="caldera")
+def recipe_init(technique_id: str, output: Path | None, method: str) -> None:
+    """Scaffold a new recipe for a MITRE technique."""
+    from chef_detection.sigma_templates import get_template, has_template, render_sigma_yaml
+    from chef_pantry.mitre.resolver import MitreResolver
+
+    if not MitreResolver.validate_technique_id(technique_id):
+        console.print(f"[red]✗[/] Invalid technique ID: {technique_id}")
+        sys.exit(1)
+
+    technique = MitreResolver.build_technique(technique_id)
+    safe_name = technique.name.lower().replace(" ", "-").replace("/", "-").replace(":", "")
+    out_dir = output or Path(f"recipes/{safe_name}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    console.print(f"\n[bold]Scaffolding recipe for[/] [cyan]{technique_id}[/] ({technique.name})\n")
+
+    # Generate recipe.yml
+    recipe_data = {
+        "name": safe_name,
+        "version": "1.0",
+        "description": f"Purple team exercise for {technique_id} ({technique.name}).",
+        "metadata": {
+            "author": "your-github-handle",
+            "mitre_techniques": [technique_id],
+            "mitre_tactics": [technique.tactic],
+            "difficulty": "beginner",
+            "estimated_time": "15m",
+            "tags": [technique.tactic, "purple-team", "purplechef"],
+        },
+        "mise_en_place": {
+            "terraform_module": "windows-target",
+            "ansible_roles": ["limacharlie-sensor"],
+        },
+        "attack": {"method": method},
+        "validate": {
+            "detection_source": "limacharlie",
+            "wait_seconds": 120,
+        },
+        "report": {"format": ["json", "html"]},
+        "advise": {"generate_sigma": True},
+    }
+
+    if method == "caldera":
+        recipe_data["attack"]["caldera"] = {
+            "adversary_name": f"chef-{safe_name}",
+            "abilities": [{"technique_id": technique_id, "ability_id": "auto"}],
+            "group": "chef-targets",
+            "timeout": 300,
+        }
+    elif method == "atomic":
+        recipe_data["attack"]["atomic"] = {
+            "technique_id": technique_id,
+            "test_numbers": [1],
+        }
+
+    import yaml as yaml_mod
+
+    recipe_path = out_dir / "recipe.yml"
+    recipe_path.write_text(yaml_mod.dump(recipe_data, sort_keys=False, default_flow_style=False))
+    console.print(f"  [green]✓[/] Created {recipe_path}")
+
+    # Generate Sigma rule if template exists
+    if has_template(technique_id):
+        sigma_dir = out_dir / "sigma-rules"
+        sigma_dir.mkdir(exist_ok=True)
+        template_fn = get_template(technique_id)
+        rule_dict = template_fn(technique_id)
+        sigma_path = sigma_dir / f"{safe_name}.yml"
+        sigma_path.write_text(render_sigma_yaml(rule_dict))
+        console.print(f"  [green]✓[/] Created {sigma_path} (from template)")
+
+        # Update recipe to reference the sigma rule
+        recipe_data["validate"]["sigma_rules"] = [{"path": f"sigma-rules/{safe_name}.yml"}]
+        recipe_data["validate"]["expected_rules"] = [{"name": rule_dict.get("title", safe_name)}]
+        recipe_path.write_text(
+            yaml_mod.dump(recipe_data, sort_keys=False, default_flow_style=False)
+        )
+    else:
+        console.print(f"  [dim]No Sigma template for {technique_id} — add one manually[/]")
+
+    console.print(f"\n[green]Recipe scaffolded at[/] {out_dir}")
+    console.print("[dim]Edit recipe.yml, then run: chef recipe lint " + str(recipe_path) + "[/]")
+
+
+@recipe.command("diff")
+@click.argument("run_a", type=click.Path(exists=True, path_type=Path))
+@click.argument("run_b", type=click.Path(exists=True, path_type=Path))
+def recipe_diff(run_a: Path, run_b: Path) -> None:
+    """Compare two recipe run results and show coverage delta."""
+    import json as json_mod
+
+    from chef_pantry.models.evidence import CoverageResult
+
+    a = CoverageResult.model_validate(json_mod.loads(run_a.read_text()))
+    b = CoverageResult.model_validate(json_mod.loads(run_b.read_text()))
+
+    a_status = {c.technique.id: c.status for c in a.evidence_chains}
+    b_status = {c.technique.id: c.status for c in b.evidence_chains}
+
+    all_techs = sorted(set(a_status) | set(b_status))
+
+    table = Table(title="Coverage Diff", border_style="cyan")
+    table.add_column("Technique", style="bold")
+    table.add_column(f"Run A ({a.run_id[:8]})")
+    table.add_column(f"Run B ({b.run_id[:8]})")
+    table.add_column("Delta")
+
+    regressions = 0
+    improvements = 0
+    for tid in all_techs:
+        sa = a_status.get(tid, "—")
+        sb = b_status.get(tid, "—")
+        if sa == sb:
+            delta = "[dim]unchanged[/]"
+        elif sb == "detected" and sa != "detected":
+            delta = "[green]+ NEW DETECTION[/]"
+            improvements += 1
+        elif sa == "detected" and sb != "detected":
+            delta = "[red]- REGRESSION[/]"
+            regressions += 1
+        else:
+            delta = f"[yellow]{sa} → {sb}[/]"
+
+        sa_fmt = "[green]detected[/]" if sa == "detected" else f"[red]{sa}[/]"
+        sb_fmt = "[green]detected[/]" if sb == "detected" else f"[red]{sb}[/]"
+        table.add_row(tid, sa_fmt, sb_fmt, delta)
+
+    console.print(table)
+    console.print(
+        f"\n  Improvements: [green]{improvements}[/]  "
+        f"Regressions: [red]{regressions}[/]  "
+        f"Coverage: {a.coverage_percentage:.0f}% → {b.coverage_percentage:.0f}%"
+    )
+
+
+@recipe.command("report-only")
+@click.argument("result_path", type=click.Path(exists=True, path_type=Path))
+@click.option("--format", "-f", "fmt", multiple=True, default=["html", "navigator"])
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=None)
+def recipe_report_only(result_path: Path, fmt: tuple[str, ...], output: Path | None) -> None:
+    """Re-generate reports from an existing coverage result JSON."""
+    import json as json_mod
+
+    from chef_detection.coverage_reporter import save_report
+    from chef_pantry.models.evidence import CoverageResult
+
+    data = json_mod.loads(result_path.read_text())
+    result = CoverageResult.model_validate(data)
+    out_dir = output or result_path.parent
+    paths = save_report(result, out_dir, list(fmt))
+    for p in paths:
+        console.print(f"[green]📄 Generated:[/] {p}")
+
+
+# --- Dashboard: aggregate multiple runs ---
+
+
+@cli.command("dashboard")
+@click.argument("results_dir", type=click.Path(exists=True, path_type=Path))
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=None)
+def dashboard(results_dir: Path, output: Path | None) -> None:
+    """Generate aggregate coverage dashboard from multiple recipe runs."""
+    import json as json_mod
+
+    from chef_detection.coverage_reporter import generate_html_report, generate_navigator_json
+    from chef_pantry.models.evidence import CoverageResult, EvidenceChain
+
+    json_files = sorted(results_dir.glob("*.json"))
+    all_chains: list[EvidenceChain] = []
+    recipe_names: list[str] = []
+
+    for jf in json_files:
+        if jf.name.endswith("_navigator.json") or jf.name.startswith("dashboard"):
+            continue
+        data = json_mod.loads(jf.read_text())
+        if "evidence_chains" not in data:
+            continue
+        result = CoverageResult.model_validate(data)
+        all_chains.extend(result.evidence_chains)
+        recipe_names.append(result.recipe_name)
+
+    if not all_chains:
+        console.print("[yellow]No coverage results found.[/]")
+        sys.exit(1)
+
+    # Deduplicate: keep best status per technique
+    best: dict[str, EvidenceChain] = {}
+    for chain in all_chains:
+        tid = chain.technique.id
+        if tid not in best or (chain.status == "detected" and best[tid].status != "detected"):
+            best[tid] = chain
+
+    from datetime import UTC, datetime
+
+    aggregate = CoverageResult(
+        recipe_name=f"Dashboard ({', '.join(sorted(set(recipe_names)))})",
+        run_id="dashboard",
+        timestamp=datetime.now(UTC),
+        evidence_chains=list(best.values()),
+    )
+
+    out_dir = output or results_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write dashboard files
+    nav = generate_navigator_json(aggregate)
+    nav_path = out_dir / "dashboard_navigator.json"
+    nav_path.write_text(json_mod.dumps(nav, indent=2))
+    console.print(f"[green]📄 Navigator:[/] {nav_path}")
+
+    html = generate_html_report(aggregate)
+    html_path = out_dir / "dashboard.html"
+    html_path.write_text(html)
+    console.print(f"[green]📄 Dashboard:[/] {html_path}")
+
+    console.print(
+        f"\n  Recipes: {len(set(recipe_names))}  "
+        f"Techniques: {aggregate.total_count}  "
+        f"Coverage: {aggregate.coverage_percentage:.0f}%"
+    )
+
+
+# --- Webhook ---
+
+
+@recipe.command("notify")
+@click.argument("result_path", type=click.Path(exists=True, path_type=Path))
+@click.option("--webhook", required=True, help="Webhook URL")
+@click.option("--slack", is_flag=True, help="Format as Slack Block Kit")
+def recipe_notify(result_path: Path, webhook: str, slack: bool) -> None:
+    """Send a coverage result to a webhook (Slack, Teams, etc.)."""
+    asyncio.run(_recipe_notify(result_path, webhook, slack))
+
+
+async def _recipe_notify(result_path: Path, webhook_url: str, slack: bool) -> None:
+    import json as json_mod
+
+    from chef_pantry.models.evidence import CoverageResult
+    from chef_recipes.webhooks import WebhookConfig, send_webhook
+
+    data = json_mod.loads(result_path.read_text())
+    result = CoverageResult.model_validate(data)
+    config = WebhookConfig(url=webhook_url)
+
+    console.print(f"[bold]Sending to[/] {webhook_url}")
+    success = await send_webhook(config, result)
+    if success:
+        console.print("[green]✓[/] Webhook delivered")
+    else:
+        console.print("[red]✗[/] Webhook failed")
+        sys.exit(1)
+
+
+# --- Navigator import ---
+
+
+@recipe.command("import-navigator")
+@click.argument("layer_path", type=click.Path(exists=True, path_type=Path))
+@click.option("--output", "-o", type=click.Path(path_type=Path), default=Path("recipes"))
+@click.option("--threshold", type=int, default=50, help="Score threshold for 'uncovered'")
+def recipe_import_navigator(layer_path: Path, output: Path, threshold: int) -> None:
+    """Import ATT&CK Navigator layer and generate recipes for uncovered techniques."""
+    from chef_recipes.navigator_import import (
+        analyze_coverage,
+        generate_recipe_stubs,
+        load_navigator_layer,
+    )
+
+    console.print(f"\n[bold]Importing Navigator layer:[/] {layer_path}\n")
+    layer = load_navigator_layer(layer_path)
+    analysis = analyze_coverage(layer, score_threshold=threshold)
+
+    console.print(f"  Total techniques: {analysis.total_techniques}")
+    console.print(f"  Covered (score >= {threshold}): [green]{analysis.covered}[/]")
+    console.print(f"  Uncovered: [red]{analysis.uncovered}[/]")
+
+    if not analysis.gap_technique_ids:
+        console.print("\n[green]No gaps found — full coverage![/]")
+        return
+
+    created = generate_recipe_stubs(analysis.gap_technique_ids, output)
+    console.print(f"\n  [green]Created {len(created)} recipe stubs in {output}[/]")
+    for p in created[:10]:
+        console.print(f"    {p}")
+    if len(created) > 10:
+        console.print(f"    ... and {len(created) - 10} more")
+
+
+# --- Harden (Phase 3 stub) ---
+
+
 @cli.group()
 def harden() -> None:
     """Hardening Kitchen — translate Ansible roles to Chef + InSpec."""
