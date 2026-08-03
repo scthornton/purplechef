@@ -1,0 +1,16 @@
+id      = "purplechef"
+title   = "Purple team recipe orchestration"
+intent  = ["a2a", "redteam"]
+surface = "mac"
+proves  = "MITRE-mapped purple-team recipes across Caldera and LimaCharlie with evidence chains. The demo script uses dry-run env vars and mock JSON, so it runs offline."
+
+[run]
+launch = "bash demo/run-demos.sh"
+
+[requires]
+files = ["Makefile"]
+
+[demo]
+beats = [
+  "no live C2 needed for the demo path",
+]
