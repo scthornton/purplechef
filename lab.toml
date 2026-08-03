@@ -5,7 +5,12 @@ surface = "mac"
 proves  = "MITRE-mapped purple-team recipes across Caldera and LimaCharlie with evidence chains. The demo script uses dry-run env vars and mock JSON, so it runs offline."
 
 [run]
-launch = "bash demo/run-demos.sh"
+# demo/run-demos.sh is an interactive screencast script: it calls `read -p`
+# between demos and, with set -e, aborts immediately in a non-TTY. Use a
+# representative non-interactive command instead; the demo script is still
+# the right thing to run by hand.
+launch  = "uv run chef recipe run recipe_book/src/chef_recipes/recipes/credential-access/recipe.yml"
+oneshot = true
 
 [requires]
 files = ["Makefile"]
